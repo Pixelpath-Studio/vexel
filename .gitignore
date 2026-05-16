@@ -1,0 +1,36 @@
+# Rust
+target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# Node
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.npmrc
+
+# iOS
+DerivedData/
+*.xcuserstate
+xcuserdata/
+Pods/
+*.xcframework.dSYMs/
+
+# Android
+.gradle/
+local.properties
+*.iml
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Generated binaries downloaded by postinstall
+packages/runtime/ios/TraceCore.xcframework/
+packages/runtime/android/jniLibs/

@@ -1,0 +1,22 @@
+[package]
+name = "trace-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Reference Rust core for the Trace vector graphics format."
+
+[lib]
+name = "trace_core"
+# crate-type extended in phase 4 to ["lib", "staticlib", "cdylib"] for UniFFI/iOS/Android.
+crate-type = ["lib"]
+
+[dependencies]
+# Phase 1 deps only. usvg, tiny-skia-path, uniffi land in phase 2/4.
+byteorder = "1.5"
+crc32fast = "1.4"
+thiserror = "1"
+
+[lints]
+workspace = true
