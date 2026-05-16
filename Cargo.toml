@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/trace-core"]
+members = ["crates/trace-core", "crates/trace-cli"]
 
 [workspace.package]
 version = "0.1.0"
@@ -10,5 +10,8 @@ repository = "https://github.com/curo-trace/trace"
 rust-version = "1.80"
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+# `deny` rather than `forbid` so individual crates can opt out for narrow,
+# well-justified cases (e.g. POSIX signal hygiene in the CLI). `trace-core`
+# itself contains zero unsafe code.
+unsafe_code = "deny"
 unused_must_use = "deny"

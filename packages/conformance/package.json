@@ -1,0 +1,19 @@
+{
+  "name": "@trace/conformance",
+  "version": "0.1.0",
+  "description": "Conformance test suite for the Trace vector graphics format.",
+  "license": "Apache-2.0",
+  "private": false,
+  "main": "runner/index.js",
+  "scripts": {
+    "test": "node runner/index.js"
+  },
+  "files": [
+    "fixtures/",
+    "runner/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

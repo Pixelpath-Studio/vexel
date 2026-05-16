@@ -1,0 +1,15 @@
+{
+  "viewBox": [0, 0, 400, 100],
+  "element_count": 5,
+  "ids_include": [
+    "flowchart-A-1", "flowchart-B-2", "flowchart-C-3",
+    "L_A_B_0", "L_B_C_0",
+    "A", "B", "C",
+    "A->B", "B->C"
+  ],
+  "hit_tests": [
+    { "point": [50,  50], "expected_id": "A" },
+    { "point": [200, 50], "expected_id": "B" },
+    { "point": [350, 50], "expected_id": "C" }
+  ]
+}

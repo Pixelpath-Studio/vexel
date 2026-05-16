@@ -1,0 +1,45 @@
+{
+  "name": "@trace/runtime",
+  "version": "0.1.0",
+  "description": "Render .trace vector graphics natively on iOS and Android via Skia.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/curo-trace/trace.git",
+    "directory": "packages/runtime"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "react-native": "src/index.ts",
+  "source": "src/index.ts",
+  "files": [
+    "dist/",
+    "src/",
+    "ios/",
+    "android/",
+    "scripts/",
+    "trace.podspec",
+    "README.md"
+  ],
+  "codegenConfig": {
+    "name": "RNTraceSpec",
+    "type": "all",
+    "jsSrcsDir": "src/native",
+    "android": {
+      "javaPackageName": "co.trace.rn"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native": ">=0.74",
+    "@shopify/react-native-skia": ">=1.4"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

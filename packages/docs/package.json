@@ -1,0 +1,10 @@
+{
+  "name": "@trace/docs",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "echo 'docs site uses Nextra; run `npm install` then `next dev` after wiring Next.js'",
+    "build": "echo 'TODO: wire Next.js + Nextra build'"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "viewBox": [0, 0, 100, 100],
+  "element_count": 1,
+  "ids_include": ["r"],
+  "hit_tests": [
+    { "point": [50, 50], "expected_id": "r" },
+    { "point": [10, 10], "expected_id": null },
+    { "point": [80, 80], "expected_id": "r" }
+  ]
+}

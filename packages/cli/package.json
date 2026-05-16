@@ -1,0 +1,21 @@
+{
+  "name": "@trace/cli",
+  "version": "0.1.0",
+  "description": "CLI for the Trace vector graphics format.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/curo-trace/trace.git",
+    "directory": "packages/cli"
+  },
+  "bin": {
+    "trace-cli": "./bin/trace-cli.js"
+  },
+  "files": [
+    "bin/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

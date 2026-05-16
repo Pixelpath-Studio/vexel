@@ -23,8 +23,12 @@ pub mod serialize;
 pub mod session;
 
 pub use api::TraceFile;
+pub use convert::{convert_svg_to_ir, convert_svg_to_trace, ConvertOptions};
 pub use error::{Result, TraceError};
+pub use format::anim::{AnimTrack, Easing, TrackType};
 pub use format::header::{FileFlags, VERSION_MAJOR, VERSION_MINOR};
 pub use format::section_table::SectionKind;
+pub use hit::HitMode;
 pub use ir::{Element, ElementFlags, Ir, Path, Point, Rect, Rgba, Verb, ViewBox};
-pub use serialize::write;
+pub use serialize::{write, write_with_extras, ExtraSection, WriterOptions};
+pub use session::{FragmentAnim, Session, StartAfter};

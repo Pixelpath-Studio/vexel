@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100">
+  <rect id="flowchart-A-1" x="10"  y="20" width="80" height="60" fill="#ffffff" stroke="#000"/>
+  <rect id="flowchart-B-2" x="160" y="20" width="80" height="60" fill="#ffffff" stroke="#000"/>
+  <rect id="flowchart-C-3" x="310" y="20" width="80" height="60" fill="#ffffff" stroke="#000"/>
+  <path id="L_A_B_0" d="M 90 50 L 160 50" stroke="#000" fill="none"/>
+  <path id="L_B_C_0" d="M 240 50 L 310 50" stroke="#000" fill="none"/>
+</svg>

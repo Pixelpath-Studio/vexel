@@ -1,0 +1,93 @@
+name: release
+
+# Builds Rust binaries for every supported target, packages the iOS
+# XCFramework and Android AAR, publishes to npm + CocoaPods + Maven Central.
+# Triggered by pushing a v* tag.
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  rust-binaries:
+    name: rust binaries (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - { os: macos-14,   target: aarch64-apple-ios }
+          - { os: macos-14,   target: aarch64-apple-ios-sim }
+          - { os: macos-14,   target: x86_64-apple-ios }
+          - { os: ubuntu-latest, target: aarch64-linux-android }
+          - { os: ubuntu-latest, target: armv7-linux-androideabi }
+          - { os: ubuntu-latest, target: x86_64-linux-android }
+          - { os: ubuntu-latest, target: i686-linux-android }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo build --release --target ${{ matrix.target }} -p trace-core
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trace-core-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/libtrace_core.*
+
+  ios-xcframework:
+    needs: rust-binaries
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: trace-core-aarch64-apple-ios*
+          path: target/
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: trace-core-x86_64-apple-ios
+          path: target/
+      - name: install uniffi-bindgen-swift
+        run: cargo install uniffi-bindgen-swift
+      - run: platforms/ios/scripts/build-xcframework.sh
+      - uses: actions/upload-release-asset@v1
+        if: false  # gated until first signed release
+        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+        with:
+          upload_url: '${{ github.event.release.upload_url }}'
+          asset_path: platforms/ios/TraceCore.xcframework
+          asset_name: TraceCore.xcframework.zip
+          asset_content_type: application/zip
+
+  android-aar:
+    needs: rust-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: trace-core-*-android*
+          path: target/
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - name: install uniffi-bindgen-kotlin
+        run: cargo install uniffi-bindgen-kotlin
+      - run: platforms/android/scripts/build-aar.sh
+
+  publish-npm:
+    needs: [ios-xcframework, android-aar]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - name: publish @trace/runtime
+        run: npm publish -w packages/runtime --access public
+        env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
+      - name: publish @trace/cli
+        run: npm publish -w packages/cli --access public
+        env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
+      - name: publish @trace/conformance
+        run: npm publish -w packages/conformance --access public
+        env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
