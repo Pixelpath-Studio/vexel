@@ -11,7 +11,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { VexelView } from '../vexel-runtime';
 
-type Variant = 'mermaid' | 'vars' | 'media' | 'pseudo';
+type Variant = 'mermaid' | 'vars' | 'media' | 'pseudo' | 'mermaid-real';
 
 const MERMAID_SVG = `
 <svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg">
@@ -73,6 +73,42 @@ const MEDIA_SVG = `
   </g>
 </svg>`;
 
+// Mimics the structure Mermaid (any version) emits: id-prefixed selectors
+// scoped under `<svg id="diagram">`. Vexel must include the <svg> root in
+// its CSS ancestor stack for these rules to resolve. Regression target for
+// the v0.0.4 fix.
+const MERMAID_REAL_SVG = `
+<svg id="diagram" viewBox="0 0 540 200" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    #diagram { font-family: Inter, sans-serif; font-size: 14px; fill: #212121; }
+    #diagram .node rect { fill: #FFF8F2; stroke: #666; stroke-width: 1; }
+    #diagram .edgePaths path { stroke: #666; stroke-width: 1.5; fill: none; }
+    #diagram .nodeLabel { fill: #212121; }
+  </style>
+  <g>
+    <g class="root">
+      <g class="edgePaths">
+        <path class="path" d="M270,55 L150,135" id="L_n1_n2_0"/>
+        <path class="path" d="M270,55 L390,135" id="L_n1_n3_0"/>
+      </g>
+      <g class="nodes">
+        <g class="node" id="flowchart-n1-0" transform="translate(270, 30)">
+          <rect x="-100" y="-22" width="200" height="44" rx="4"/>
+          <text class="nodeLabel" x="0" y="6" text-anchor="middle">Usability Heuristics</text>
+        </g>
+        <g class="node" id="flowchart-n2-1" transform="translate(150, 160)">
+          <rect x="-110" y="-22" width="220" height="44" rx="4"/>
+          <text class="nodeLabel" x="0" y="6" text-anchor="middle">Principles for Diagnosis</text>
+        </g>
+        <g class="node" id="flowchart-n3-2" transform="translate(390, 160)">
+          <rect x="-95" y="-22" width="190" height="44" rx="4"/>
+          <text class="nodeLabel" x="0" y="6" text-anchor="middle">Address UI Friction</text>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>`;
+
 const PSEUDO_SVG = `
 <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
   <style>
@@ -103,6 +139,7 @@ export function CssScreen() {
   const source = useMemo(() => {
     switch (variant) {
       case 'mermaid': return MERMAID_SVG;
+      case 'mermaid-real': return MERMAID_REAL_SVG;
       case 'vars': return VARS_SVG;
       case 'media': return MEDIA_SVG;
       case 'pseudo': return PSEUDO_SVG;
@@ -120,7 +157,7 @@ export function CssScreen() {
       </Text>
 
       <View style={s.row}>
-        {(['mermaid', 'vars', 'media', 'pseudo'] as Variant[]).map((v) => (
+        {(['mermaid', 'mermaid-real', 'vars', 'media', 'pseudo'] as Variant[]).map((v) => (
           <Pressable
             key={v}
             onPress={() => setVariant(v)}

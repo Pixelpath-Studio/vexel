@@ -203,10 +203,20 @@ export function renderGroup(
   const overBudget =
     opts.interactiveBudget != null && opts.graph.shapes.size >= opts.interactiveBudget;
 
+  // Pass through the group's geometric + paint attributes to <G>:
+  //   - transform — REQUIRED for SVGs that position children via `<g transform>`
+  //     (Mermaid, GraphViz, almost every diagram generator). Without this, every
+  //     child renders at the parent's local origin (overlapping at 0,0).
+  //   - opacity / clip / mask / visibility / display — group-level effects.
+  // Everything else (id, class, style, geometry attrs that don't apply to <g>)
+  // is filtered out.
+  const groupAttrs = groupAttrsForG(a);
+
   if (id && !overBudget) {
     return (
       <G
         key={key}
+        {...groupAttrs}
         onPress={() => opts.onPress(id)}
         onPressIn={opts.onPressIn ? () => opts.onPressIn!(id) : undefined}
         onPressOut={opts.onPressOut}
@@ -215,7 +225,28 @@ export function renderGroup(
       </G>
     );
   }
-  return <G key={key}>{inner}</G>;
+  return <G key={key} {...groupAttrs}>{inner}</G>;
+}
+
+const G_PASSTHROUGH_ATTRS = new Set([
+  'transform',
+  'opacity',
+  'visibility',
+  'display',
+  'clip-path',
+  'mask',
+  'pointer-events',
+]);
+
+function groupAttrsForG(a: Record<string, string> | undefined): Record<string, any> {
+  if (!a) return {};
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(a)) {
+    if (!G_PASSTHROUGH_ATTRS.has(k)) continue;
+    const ck = k.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    out[ck] = v;
+  }
+  return out;
 }
 
 interface ShapeRenderCtx {

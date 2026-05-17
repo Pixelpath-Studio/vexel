@@ -518,6 +518,23 @@ export function VexelView(props: VexelViewProps) {
 
   const { svgRoot, graph } = loadState;
 
+  // CSS ancestor seed: the <svg> root is itself the ancestor of every
+  // rendered element. Selectors that key off the root (e.g. Mermaid's
+  // `#diagram .node rect`) only match if it's in the ancestor stack and
+  // its inheritable styles flow into descendants.
+  const svgRootAttrs = attrs(svgRoot);
+  const svgRootElCtx: ElementContext = {
+    tag: 'svg',
+    id: svgRootAttrs?.id,
+    classes: svgRootAttrs?.class
+      ? svgRootAttrs.class.split(/\s+/).filter(Boolean)
+      : undefined,
+    attributes: svgRootAttrs,
+  };
+  const svgRootInherited = resolveStyle
+    ? resolveStyle(svgRootElCtx, [], {})
+    : {};
+
   // scale-down semantics (matches CSS object-fit:scale-down):
   //   - if content natural size <= canvas → render at natural size (no scale)
   //   - else behave like 'contain' (meet)
@@ -614,6 +631,11 @@ export function VexelView(props: VexelViewProps) {
                     resolveStyle,
                   },
                   `top-${i}`,
+                  {
+                    reveal: 1,
+                    ancestors: [svgRootElCtx],
+                    cssInherited: svgRootInherited,
+                  },
                 ),
               )}
           </Svg>

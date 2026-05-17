@@ -430,6 +430,54 @@ describe('integration: Mermaid-style stylesheet', () => {
     eq(resolved['stroke-width'], '1.5px');
     eq(resolved.fill, 'none');
   });
+
+  // Regression: Mermaid uses id-prefixed selectors. The SVG root must be in
+  // the ancestor stack for these to match. Renderers calling resolveCascade
+  // MUST seed the stack with the <svg> root element context.
+  it('matches Mermaid id-prefixed selectors (#diagram .node rect)', () => {
+    const css = `
+      #diagram { font-size: 18px; fill: #212121; }
+      #diagram .node rect { fill: #FFF8F2; stroke: #666; stroke-width: 1px; }
+      #diagram .edgePath .path { stroke: #666; stroke-width: 2px; fill: none; }
+    `;
+    const parsed = parseStylesheet(css);
+    const stack: ElementContext[] = [
+      { tag: 'svg', id: 'diagram' },
+      { tag: 'g' },
+      { tag: 'g', classes: ['root'] },
+      { tag: 'g', classes: ['nodes'] },
+      { tag: 'g', id: 'flowchart-n1-0', classes: ['node'] },
+      { tag: 'rect', classes: ['basic', 'label-container'] },
+    ];
+    const resolved = resolveCascade({
+      rules: parsed.rules,
+      stack,
+      inherited: {},
+      ctx: baseCtx,
+    });
+    eq(resolved.fill, '#FFF8F2', 'node rect fill must come from #diagram .node rect');
+    eq(resolved.stroke, '#666');
+    eq(resolved['stroke-width'], '1px');
+  });
+
+  // Same selector but WITHOUT the svg root — the renderer bug we're guarding
+  // against. Should NOT match.
+  it('does NOT match id-prefixed selectors when SVG root is absent', () => {
+    const css = `#diagram .node rect { fill: #FFF8F2; }`;
+    const parsed = parseStylesheet(css);
+    const stack: ElementContext[] = [
+      // No <svg id="diagram"> — bug condition
+      { tag: 'g', id: 'flowchart-n1-0', classes: ['node'] },
+      { tag: 'rect' },
+    ];
+    const resolved = resolveCascade({
+      rules: parsed.rules,
+      stack,
+      inherited: {},
+      ctx: baseCtx,
+    });
+    assert(resolved.fill === undefined, 'should not match without svg ancestor');
+  });
 });
 
 // ============================================================================

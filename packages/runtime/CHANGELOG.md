@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.0.4 — Mermaid-correctness fixes
+
+Two bugs from 0.0.3 that prevented real Mermaid output from rendering correctly:
+
+1. **`<g transform="...">` was ignored** — every `<g>` was emitted as a bare `<G>` without
+   the parent's `transform`, `opacity`, `clip-path`, `mask`, `visibility`, `display`, or
+   `pointer-events`. Mermaid (and most diagram generators) positions every node via
+   `<g transform="translate(...)">`, so without this fix all nodes piled up at viewBox
+   origin (0,0). Fixed: `renderGroup` now forwards these group-level attributes to the
+   underlying `<G>` element.
+
+2. **The `<svg>` root was missing from the CSS ancestor stack** — selectors like Mermaid's
+   `#diagram .node rect { fill: #FFF8F2 }` silently failed because Vexel started the
+   ancestor stack at the first top-level `<g>`, skipping `<svg id="diagram">`. Rects fell
+   back to SVG default `fill: black`. Fixed: `VexelView` seeds the renderer with
+   `[<svg> element context]` as the initial ancestor, and pre-resolves the SVG root's own
+   CSS so inheritable props (like `fill`, `color`, `font-*`) flow down to descendants.
+
+Together these mean real Mermaid SVGs (the actual `<style>` block + `<g transform>` output)
+render correctly without any pre-processing in the consumer (no flatten shim, no WebView
+hacks needed).
+
+Two regression tests added for the CSS ancestor bug; the demo gains a `mermaid-real`
+variant exercising the exact selector + transform pattern Mermaid emits.
+
 ## 0.0.3 — CSS support
 
 The big one. Vexel now resolves the full CSS cascade declared in the SVG's `<style>` blocks, so
