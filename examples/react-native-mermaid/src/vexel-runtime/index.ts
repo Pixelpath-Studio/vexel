@@ -1,4 +1,8 @@
-// @pixelpath/vexel — public surface (preview JS implementation).
+// @pixelpath/vexel — public surface (v0.x preview, pure-JS via react-native-svg).
+//
+// v1.0 will swap the rendering surface to Skia (via @shopify/react-native-skia)
+// and the hit-test path to the Rust core, without changing the public API
+// surface below. Consumers can upgrade transparently.
 
 export { VexelView, buildGraph } from './VexelView';
 export { VexelError } from './types';
@@ -34,4 +38,8 @@ export type {
   IndexedShape,
   ShapeKind,
   RenderStatus,
+  // CSS support (v0.0.3+)
+  CssWarning,
+  FontFaceDeclaration,
+  MediaContext,
 } from './types';

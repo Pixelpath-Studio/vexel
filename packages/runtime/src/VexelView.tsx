@@ -24,7 +24,13 @@ import { AccessibilityInfo, View, Text } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import { attrs, buildGraph, children } from './parseSvgGraph';
 import { loadSource } from './loadSource';
-import { DEFAULT_COLORS, renderDefs, renderGroup } from './renderer';
+import { DEFAULT_COLORS, renderDefs, renderGroup, type ResolveStyleFn } from './renderer';
+import {
+  resolveCascade,
+  type ElementContext,
+  type ParsedStylesheet,
+  type ResolveContext,
+} from './cssRules';
 import { ZoomLayer } from './ZoomLayer';
 import type {
   Alignment,
@@ -114,7 +120,13 @@ export function VexelView(props: VexelViewProps) {
 
   type LoadState =
     | { kind: 'loading' }
-    | { kind: 'ready'; tree: any; svgRoot: any; graph: Graph }
+    | {
+        kind: 'ready';
+        tree: any;
+        svgRoot: any;
+        graph: Graph;
+        parsedCss: ParsedStylesheet;
+      }
     | { kind: 'error'; error: VexelError };
 
   const [loadState, setLoadState] = useState<LoadState>({ kind: 'loading' });
@@ -132,7 +144,15 @@ export function VexelView(props: VexelViewProps) {
           tree: parsed.tree,
           svgRoot: parsed.svgRoot,
           graph: parsed.graph,
+          parsedCss: parsed.parsedCss,
         });
+        // Surface CSS warnings + @font-face declarations to the host app.
+        if (props.onCSSWarning) {
+          for (const w of parsed.parsedCss.warnings) props.onCSSWarning(w);
+        }
+        if (props.onFontFace && parsed.parsedCss.fontFaces.length) {
+          props.onFontFace(parsed.parsedCss.fontFaces);
+        }
         onLoad?.(parsed.graph);
       } catch (e: any) {
         if (cancelled) return;
@@ -403,6 +423,71 @@ export function VexelView(props: VexelViewProps) {
     [effectiveStream, orderedIds, streamElementMs, streamPauseMs, streamEasing, streamTick],
   );
 
+  // ---------- CSS cascade resolver ----------
+  //
+  // Build a `resolveStyle(elementContext, ancestorStack) -> resolvedProps`
+  // closure that the renderer calls per element. The closure captures the
+  // parsed CSS rules + current consumer-provided variables + media context +
+  // selection state (drives :hover/:focus pseudo-classes). It's memoized on
+  // those inputs so a child re-render doesn't burn CPU re-cascading.
+
+  const userCssVariables = props.cssVariables;
+  const userMediaContext = props.mediaContext;
+
+  const mediaContextResolved = useMemo<NonNullable<typeof userMediaContext>>(() => {
+    return {
+      darkMode: userMediaContext?.darkMode ?? false,
+      reducedMotion: userMediaContext?.reducedMotion ?? reduceMotion,
+      viewportWidth: userMediaContext?.viewportWidth ?? (canvasSize.w || undefined),
+      viewportHeight: userMediaContext?.viewportHeight ?? (canvasSize.h || undefined),
+    };
+  }, [userMediaContext, reduceMotion, canvasSize.w, canvasSize.h]);
+
+  const resolveStyle = useMemo<ResolveStyleFn | undefined>(() => {
+    if (loadState.kind !== 'ready') return undefined;
+    const parsed = loadState.parsedCss;
+    if (parsed.rules.length === 0 && Object.keys(parsed.rootVariables).length === 0) {
+      // No CSS at all — skip building the closure to avoid per-element overhead.
+      return undefined;
+    }
+    const variables: Record<string, string> = {
+      ...(userCssVariables ?? {}),
+      // SVG :root vars win over consumer-provided defaults (matches browser
+      // cascade — :root is author-origin, consumer-provided is treated as
+      // user-origin defaults).
+      ...parsed.rootVariables,
+    };
+    const ctx: ResolveContext = {
+      cssVariables: variables,
+      mediaContext: mediaContextResolved,
+      selectedIds,
+      activeId: lastTapped,
+    };
+
+    // No memoization: inherited values vary per render path (same .label
+    // class inside .cluster vs inside .panel inherits different colors),
+    // so a class+ancestor-signature cache would be incorrect.
+    return (
+      element: ElementContext,
+      ancestors: ElementContext[],
+      inherited: Record<string, string>,
+    ) => {
+      const stack = [...ancestors, element];
+      return resolveCascade({
+        rules: parsed.rules,
+        stack,
+        inherited,
+        ctx,
+      });
+    };
+  }, [
+    loadState,
+    userCssVariables,
+    mediaContextResolved,
+    selectedIds,
+    lastTapped,
+  ]);
+
   // ---------- Padding box ----------
 
   const pad = normalizePadding(padding);
@@ -526,6 +611,7 @@ export function VexelView(props: VexelViewProps) {
                     revealOf,
                     skipText: rendering?.skipText,
                     interactiveBudget: rendering?.interactiveBudget,
+                    resolveStyle,
                   },
                   `top-${i}`,
                 ),

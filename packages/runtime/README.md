@@ -41,6 +41,8 @@ import { VexelView } from '@pixelpath/vexel';
 | Feature | Prop | Notes |
 |---|---|---|
 | **Render any SVG** | `source` (string · `Uint8Array` · `{uri}`) | async loader; placeholder / errorFallback |
+| **CSS support** | (automatic) | parses `<style>` blocks — selectors, !important, @media, var(), calc(), inheritance. Mermaid / Inkscape / Figma exports render correctly out of the box (v0.0.3+) |
+| **CSS context** | `cssVariables`, `mediaContext`, `onCSSWarning`, `onFontFace` | drive var() values, dark-mode toggle, surface @font-face declarations |
 | **Layout** | `fit`, `alignment`, `padding` | 5 fit modes including `scale-down`, 9-way alignment |
 | **Highlight on tap** | `highlight: 'none' \| 'single' \| 'connected' \| 'custom'` | adjacency derived from SVG ids + path geometry |
 | **Selection mode** | `selectionMode: 'single' \| 'multiple' \| 'toggle'` | multi-select supported |
@@ -57,6 +59,32 @@ This is **v0.x — a pure-JS preview** implemented with `react-native-svg`. The 
 eventual v1.0, which will swap the rendering surface to Skia and route hit-testing through a Rust
 core for cross-platform pixel parity at scale. **Consumers can upgrade transparently** — the public
 API doesn't change.
+
+## CSS support (v0.0.3+)
+
+Most SVG generators (Mermaid, Inkscape, Figma export, Adobe Illustrator, GraphViz) style elements
+via `<style>` blocks with CSS class selectors. `react-native-svg` doesn't process CSS, so SVGs from
+these tools render unstyled on RN. **Vexel parses the cascade and applies the results inline**, so
+the SVG renders identically to a browser:
+
+- Selectors: tag / class / id / attribute / `*` / compound, descendant (` `), child (`>`),
+  adjacent (`+`), sibling (`~`)
+- Pseudo-classes: `:first-child`, `:last-child`, `:nth-child()`, `:not()`, `:is()`, `:where()`,
+  `:root` — plus `:hover` / `:focus` / `:active` mapped to Vexel's selection state
+- At-rules: `@media (prefers-color-scheme | min-width | max-width)`, `@supports`, `@keyframes`,
+  `@font-face`, `@import`
+- Values: `var(--name, fallback)`, `calc()`, `currentColor`, `!important`
+- Inheritance: full SVG 2 inheritance for `fill`, `stroke`, `color`, `font-*`, etc.
+
+```tsx
+<VexelView
+  source={mermaidSvgString}
+  cssVariables={{ '--brand': '#f59e0b' }}                   // feed your design tokens
+  mediaContext={{ darkMode: scheme === 'dark' }}            // dark-mode @media support
+  onFontFace={(faces) => loadFonts(faces)}                  // hook @font-face into your loader
+  onCSSWarning={(w) => console.warn(w.kind, w.message)}     // dev diagnostics
+/>
+```
 
 ## Peer dependencies
 

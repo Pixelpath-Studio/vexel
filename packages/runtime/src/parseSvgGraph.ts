@@ -13,6 +13,7 @@
 
 import { XMLParser } from 'fast-xml-parser';
 import type { Graph, IndexedShape, ShapeKind } from './types';
+import { collectStyleRules, type ParsedStylesheet } from './cssRules';
 
 const xmlParser = new XMLParser({
   ignoreAttributes: false,
@@ -27,6 +28,8 @@ export interface ParseResult {
   svgRoot: any;
   /** Derived graph (shapes + adjacency). */
   graph: Graph;
+  /** Parsed <style> blocks: rules, keyframes, @font-face, @import, :root vars. */
+  parsedCss: ParsedStylesheet;
 }
 
 export function buildGraph(svgText: string): ParseResult {
@@ -62,7 +65,13 @@ export function buildGraph(svgText: string): ParseResult {
   });
 
   const adjacency = deriveAdjacency(shapes);
-  return { tree, svgRoot, graph: { viewBox, viewBoxRect, shapes, adjacency } };
+  const parsedCss = collectStyleRules(svgRoot, walk, textOf);
+  return {
+    tree,
+    svgRoot,
+    graph: { viewBox, viewBoxRect, shapes, adjacency },
+    parsedCss,
+  };
 }
 
 function parseViewBox(vb: string): { x: number; y: number; w: number; h: number } {

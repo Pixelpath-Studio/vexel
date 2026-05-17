@@ -6,6 +6,13 @@
 
 import type { ReactNode } from 'react';
 import type { ViewStyle } from 'react-native';
+import type {
+  CssWarning,
+  FontFaceDeclaration,
+  MediaContext,
+} from './cssRules';
+
+export type { CssWarning, FontFaceDeclaration, MediaContext } from './cssRules';
 
 // ---------- Highlight ----------
 
@@ -219,6 +226,31 @@ export interface VexelViewProps {
   // -------- EXTENSIBILITY --------
   decorators?: VexelDecorator[];
   plugins?: VexelPlugin[];
+
+  // -------- CSS / STYLING --------
+  /**
+   * Values for `var(--name)` references in the SVG's <style> blocks.
+   * Merged below the SVG's own :root variables (consumer values lose to
+   * explicit :root declarations in the SVG).
+   */
+  cssVariables?: Record<string, string>;
+  /**
+   * Drives @media query evaluation (prefers-color-scheme, viewport dims,
+   * prefers-reduced-motion). Defaults: dark=false, reducedMotion auto-detected
+   * via AccessibilityInfo, viewport from layout.
+   */
+  mediaContext?: MediaContext;
+  /**
+   * Fired once per non-fatal CSS warning (unknown at-rule, malformed
+   * selector, unsupported pseudo). Use to surface diagnostics during dev.
+   */
+  onCSSWarning?: (warning: CssWarning) => void;
+  /**
+   * Fired once with the list of @font-face declarations found in the SVG so
+   * the host app can register them with its own font loader (RN has no
+   * generic font-loading API).
+   */
+  onFontFace?: (fontFaces: FontFaceDeclaration[]) => void;
 
   // -------- STANDARD --------
   style?: ViewStyle;

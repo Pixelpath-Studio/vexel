@@ -22,6 +22,7 @@ import { ZoomScreen } from './src/screens/ZoomScreen';
 import { PluginsScreen } from './src/screens/PluginsScreen';
 import { A11yScreen } from './src/screens/A11yScreen';
 import { PerfScreen } from './src/screens/PerfScreen';
+import { CssScreen } from './src/screens/CssScreen';
 
 type Tab =
   | 'Basic'
@@ -32,9 +33,10 @@ type Tab =
   | 'Zoom'
   | 'Plugins'
   | 'A11y'
-  | 'Perf';
+  | 'Perf'
+  | 'CSS';
 
-const TABS: Tab[] = ['Basic', 'Layout', 'Highlight', 'Stream', 'Theme', 'Zoom', 'Plugins', 'A11y', 'Perf'];
+const TABS: Tab[] = ['Basic', 'Layout', 'Highlight', 'Stream', 'Theme', 'Zoom', 'Plugins', 'A11y', 'Perf', 'CSS'];
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('Basic');
@@ -75,6 +77,7 @@ function renderTab(tab: Tab) {
     case 'Plugins':   return <PluginsScreen />;
     case 'A11y':      return <A11yScreen />;
     case 'Perf':      return <PerfScreen />;
+    case 'CSS':       return <CssScreen />;
   }
 }
 

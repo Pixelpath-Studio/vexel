@@ -1,7 +1,7 @@
 {
   "name": "@pixelpath/vexel",
-  "version": "0.0.2",
-  "description": "Interactive SVG renderer for React Native. Parse, render, tap-to-highlight (with transitive connections), stream stroke-by-stroke, and theme — all per-element addressable.",
+  "version": "0.0.3",
+  "description": "Interactive SVG renderer for React Native — with full CSS support. Parses <style> blocks (selectors, !important, @media, var(), inheritance) so Mermaid / Inkscape / Figma SVGs render natively. Tap-to-highlight, stream stroke-by-stroke, and theme — all per-element addressable.",
   "license": "Apache-2.0",
   "author": "PixelPath",
   "repository": {

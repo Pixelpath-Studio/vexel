@@ -42,4 +42,8 @@ export type {
   IndexedShape,
   ShapeKind,
   RenderStatus,
+  // CSS support (v0.0.3+)
+  CssWarning,
+  FontFaceDeclaration,
+  MediaContext,
 } from './types';
