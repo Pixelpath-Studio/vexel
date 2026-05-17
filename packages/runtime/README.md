@@ -4,9 +4,25 @@
 render it natively, tap individual elements, highlight transitive connections, stream stroke-by-stroke,
 and theme programmatically — all from one React component.
 
+[![npm](https://img.shields.io/npm/v/@pixelpath/vexel.svg)](https://www.npmjs.com/package/@pixelpath/vexel)
+[![license](https://img.shields.io/npm/l/@pixelpath/vexel.svg)](https://github.com/Pixelpath-Studio/vexel/blob/main/LICENSE)
+
+## Install
+
 ```bash
+# Expo
+npx expo install @pixelpath/vexel react-native-svg
+
+# Bare React Native
 npm install @pixelpath/vexel react-native-svg
+cd ios && pod install
 ```
+
+> `react-native-svg` is a peer dependency. Most RN apps already have it; if not,
+> install it alongside `@pixelpath/vexel`. It's a peer dep (not a regular dep)
+> so your app's existing version is reused — avoids native-module duplication.
+
+## Use
 
 ```tsx
 import { VexelView } from '@pixelpath/vexel';

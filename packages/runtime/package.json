@@ -1,6 +1,6 @@
 {
   "name": "@pixelpath/vexel",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Interactive SVG renderer for React Native. Parse, render, tap-to-highlight (with transitive connections), stream stroke-by-stroke, and theme — all per-element addressable.",
   "license": "Apache-2.0",
   "author": "PixelPath",
