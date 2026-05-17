@@ -1,45 +1,50 @@
 {
   "name": "@pixelpath/vexel",
-  "version": "0.1.0",
-  "description": "Render .vex vector graphics natively on iOS and Android via Skia.",
+  "version": "0.0.1",
+  "description": "Interactive SVG renderer for React Native. Parse, render, tap-to-highlight (with transitive connections), stream stroke-by-stroke, and theme — all per-element addressable.",
   "license": "Apache-2.0",
+  "author": "PixelPath",
   "repository": {
     "type": "git",
-    "url": "https://github.com/curo-trace/trace.git",
+    "url": "git+https://github.com/pixelpath/vexel.git",
     "directory": "packages/runtime"
   },
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "homepage": "https://github.com/pixelpath/vexel#readme",
+  "bugs": {
+    "url": "https://github.com/pixelpath/vexel/issues"
+  },
+  "keywords": [
+    "react-native",
+    "svg",
+    "vector",
+    "graphics",
+    "mermaid",
+    "diagram",
+    "interactive",
+    "rendering",
+    "highlight",
+    "streaming",
+    "ios",
+    "android"
+  ],
+  "main": "src/index.ts",
   "react-native": "src/index.ts",
   "source": "src/index.ts",
+  "types": "src/index.ts",
   "files": [
-    "dist/",
     "src/",
-    "ios/",
-    "android/",
-    "scripts/",
-    "trace.podspec",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
-  "codegenConfig": {
-    "name": "RNTraceSpec",
-    "type": "all",
-    "jsSrcsDir": "src/native",
-    "android": {
-      "javaPackageName": "co.vexel.rn"
-    }
+  "dependencies": {
+    "fast-xml-parser": "^5.8.0"
   },
   "peerDependencies": {
     "react": ">=18",
     "react-native": ">=0.74",
-    "@shopify/react-native-skia": ">=1.4"
-  },
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "postinstall": "node scripts/postinstall.js"
+    "react-native-svg": ">=15.0.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=18"
   }
 }

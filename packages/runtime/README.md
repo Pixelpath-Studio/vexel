@@ -1,43 +1,59 @@
 # @pixelpath/vexel
 
-React Native component and JS API for the [Vexel vector graphics format](../../SPEC.md).
-
-## Install
+**Interactive SVG renderer for React Native.** Parse any SVG (Mermaid diagram, hand-authored, schematic),
+render it natively, tap individual elements, highlight transitive connections, stream stroke-by-stroke,
+and theme programmatically — all from one React component.
 
 ```bash
-npm install @pixelpath/vexel @shopify/react-native-skia
-cd ios && pod install
+npm install @pixelpath/vexel react-native-svg
 ```
 
-The postinstall script downloads platform binaries (`Vexel.framework` for iOS,
-`vexel-android.aar` for Android) from the matching GitHub release. Skia binaries
-come from `@shopify/react-native-skia` (peer dep) — Vexel doesn't ship its own.
-
-## Use
-
 ```tsx
-import { VexelView, convert } from '@pixelpath/vexel';
-
-const bytes = convert(svgString);
+import { VexelView } from '@pixelpath/vexel';
 
 <VexelView
-  source={bytes}
+  source={mySvgString}
+  highlight="connected"
+  streamReveal={isStreaming}
   onElementPress={(id) => console.log('tapped', id)}
-  highlightedIds={['flowchart-A-1']}
-  style={{ width: '100%', height: 400 }}
+  style={{ flex: 1 }}
 />
 ```
 
-Streaming:
+## What's in here
 
-```tsx
-import { VexelView, useVexelSession } from '@pixelpath/vexel';
+| Feature | Prop | Notes |
+|---|---|---|
+| **Render any SVG** | `source` (string · `Uint8Array` · `{uri}`) | async loader; placeholder / errorFallback |
+| **Layout** | `fit`, `alignment`, `padding` | 5 fit modes including `scale-down`, 9-way alignment |
+| **Highlight on tap** | `highlight: 'none' \| 'single' \| 'connected' \| 'custom'` | adjacency derived from SVG ids + path geometry |
+| **Selection mode** | `selectionMode: 'single' \| 'multiple' \| 'toggle'` | multi-select supported |
+| **Stream-by-stroke** | `streamReveal`, `streamSpeed`, `streamEasing`, `streamOrder`, `loop` | hand-natural easing, document/random/topological order |
+| **Themes** | `colors.byId`, `colors.byClass`, `colorFilter` | text stays legible across themes |
+| **Zoom & pan** | `zoom`, `pan`, `onZoomChange` | pinch + drag + double-tap, bounded |
+| **Plugins** | `plugins`, `decorators` | ships `VexelLegend`, `VexelTooltip`; build your own |
+| **Accessibility** | `accessibilityLabel`, `respectReducedMotion` | auto-detects OS reduce-motion |
+| **Performance** | `rendering.skipText`, `rendering.interactiveBudget` | scales to 1000+ elements |
 
-const session = useVexelSession({ viewBox: [0, 0, 800, 600] });
-ws.on('fragment', (svg) => session.append(svg, {
-  strokeDrawMs: 800, fillFadeMs: 300, easing: 'hand-natural',
-}));
-return <VexelView source={session} style={{ flex: 1 }} />;
-```
+## Status
 
-See [SPEC.md §7](../../SPEC.md#7-the-npm-package-tracenuntime) for the full API.
+This is **v0.x — a pure-JS preview** implemented with `react-native-svg`. The prop API matches the
+eventual v1.0, which will swap the rendering surface to Skia and route hit-testing through a Rust
+core for cross-platform pixel parity at scale. **Consumers can upgrade transparently** — the public
+API doesn't change.
+
+## Peer dependencies
+
+- `react` >= 18
+- `react-native` >= 0.74
+- `react-native-svg` >= 15
+
+## Example
+
+The full feature set is exercised by the demo app at
+[`examples/react-native-mermaid`](https://github.com/pixelpath/vexel/tree/main/examples/react-native-mermaid)
+in the repo — 9-tab navigator with one tab per feature group.
+
+## License
+
+Apache-2.0 © PixelPath
