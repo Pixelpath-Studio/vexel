@@ -51,7 +51,7 @@ API doesn't change.
 ## Example
 
 The full feature set is exercised by the demo app at
-[`examples/react-native-mermaid`](https://github.com/pixelpath/vexel/tree/main/examples/react-native-mermaid)
+[`examples/react-native-mermaid`](https://github.com/Pixelpath-Studio/vexel/tree/main/examples/react-native-mermaid)
 in the repo — 9-tab navigator with one tab per feature group.
 
 ## License

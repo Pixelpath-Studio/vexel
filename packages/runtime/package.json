@@ -6,12 +6,12 @@
   "author": "PixelPath",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pixelpath/vexel.git",
+    "url": "git+https://github.com/Pixelpath-Studio/vexel.git",
     "directory": "packages/runtime"
   },
-  "homepage": "https://github.com/pixelpath/vexel#readme",
+  "homepage": "https://github.com/Pixelpath-Studio/vexel#readme",
   "bugs": {
-    "url": "https://github.com/pixelpath/vexel/issues"
+    "url": "https://github.com/Pixelpath-Studio/vexel/issues"
   },
   "keywords": [
     "react-native",
