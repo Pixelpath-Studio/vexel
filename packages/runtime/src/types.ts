@@ -64,6 +64,87 @@ export interface RemoteSource {
 }
 export type VexelSource = string | Uint8Array | RemoteSource;
 
+// ---------- Edge styling ----------
+
+/**
+ * Built-in arrowhead shape names.
+ *
+ *   `triangle`       — filled solid triangle (Mermaid default)
+ *   `triangle-open`  — outline only
+ *   `arrow`          — open chevron, no fill
+ *   `circle`         — filled disc
+ *   `circle-open`    — ring
+ *   `square`         — filled square
+ *   `diamond`        — filled rhombus
+ *   `bar`            — perpendicular line cap
+ *   `none`           — strip the marker
+ *
+ * Pass a `{ d, viewBox?, refX?, refY?, width?, height? }` object for a custom path.
+ */
+export type ArrowShape =
+  | 'triangle'
+  | 'triangle-open'
+  | 'arrow'
+  | 'circle'
+  | 'circle-open'
+  | 'square'
+  | 'diamond'
+  | 'bar'
+  | 'none'
+  | CustomArrowShape;
+
+export interface CustomArrowShape {
+  /** SVG path data ("d" attribute). */
+  d: string;
+  /** Marker viewBox; defaults to "0 0 10 10". */
+  viewBox?: string;
+  /** Anchor point in marker space (where the line "ends"). Defaults to (9, 5). */
+  refX?: number;
+  refY?: number;
+  /** Marker size in viewBox units (default 10). */
+  width?: number;
+  height?: number;
+  /** If true, the path is stroked (outline only); else filled. */
+  outline?: boolean;
+}
+
+/**
+ * Per-edge styling. Layered on top of the SVG's own CSS at the highest
+ * priority (overrides everything except per-frame status/streaming).
+ *
+ * Dash patterns can be:
+ *   - a preset: `'solid' | 'dashed' | 'dotted'`
+ *   - an explicit array: `[5, 3]` = 5-unit dash, 3-unit gap
+ */
+export interface EdgeStyle {
+  stroke?: string;
+  strokeWidth?: number;
+  strokeDasharray?: number[] | 'solid' | 'dashed' | 'dotted';
+  strokeLinecap?: 'butt' | 'round' | 'square';
+  strokeLinejoin?: 'miter' | 'round' | 'bevel';
+  opacity?: number;
+  /**
+   * Arrow shape. Pass one shape to use it at the end (most common), or
+   * `{ start, end }` to control each endpoint independently.
+   */
+  arrow?: ArrowShape | { start?: ArrowShape; end?: ArrowShape };
+  /** Arrow fill/stroke color. Defaults to the edge's `stroke`. */
+  arrowColor?: string;
+  /** Arrow size multiplier. 1 = built-in default size. */
+  arrowScale?: number;
+}
+
+export interface EdgesConfig {
+  /** Style applied to every edge before per-id/class/resolve overrides. */
+  default?: EdgeStyle;
+  /** Per-element overrides keyed by SVG id. */
+  byId?: Record<string, EdgeStyle>;
+  /** Per-element overrides keyed by SVG class. Multiple matching classes merge in order. */
+  byClass?: Record<string, EdgeStyle>;
+  /** Programmatic resolver — called per edge for full dynamic control. */
+  resolve?: (id: string | undefined, shape: IndexedShape | undefined) => EdgeStyle | undefined;
+}
+
 // ---------- Streaming ----------
 
 export type Easing = 'linear' | 'ease-out' | 'ease-in-out' | 'hand-natural';
@@ -222,6 +303,14 @@ export interface VexelViewProps {
   // -------- PLACEHOLDER / ERROR UI --------
   placeholder?: ReactNode | (() => ReactNode);
   errorFallback?: ReactNode | ((error: VexelError) => ReactNode);
+
+  // -------- EDGE / ARROW STYLING --------
+  /**
+   * Customize connecting lines (paths/lines) and their arrowheads.
+   * Cascades over the SVG's own CSS rules — the highest priority styling
+   * layer below interactive state (selection/streaming).
+   */
+  edges?: EdgesConfig;
 
   // -------- EXTENSIBILITY --------
   decorators?: VexelDecorator[];

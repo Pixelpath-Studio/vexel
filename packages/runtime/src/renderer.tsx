@@ -22,6 +22,13 @@ import {
 } from 'react-native-svg';
 import { attrs, children, firstChild, textOf, walk } from './parseSvgGraph';
 import type { ElementContext } from './cssRules';
+import {
+  blueprintFor,
+  makeMarkerId,
+  resolveDasharray,
+  type MarkerSpec,
+} from './arrowMarkers';
+import type { EdgeStyle } from './types';
 import type {
   Graph,
   HighlightColors,
@@ -66,6 +73,12 @@ export const DEFAULT_COLORS = {
   connectedEdge: '#3b82f6',
 };
 
+export type EdgeStyleResolverFn = (
+  name: string,
+  id: string | undefined,
+  classes: string[] | undefined,
+) => EdgeStyle | undefined;
+
 export interface RenderOptions {
   graph: Graph;
   selectedId: string | null;
@@ -85,9 +98,11 @@ export interface RenderOptions {
   interactiveBudget?: number;
   /** CSS cascade resolver — applies <style> blocks to each element. */
   resolveStyle?: ResolveStyleFn;
+  /** Per-element edge styling resolver — overrides line attrs + arrows. */
+  edgeStyleOf?: EdgeStyleResolverFn;
 }
 
-export function renderDefs(svgRoot: any): React.ReactNode {
+export function renderDefs(svgRoot: any, syntheticMarkers?: MarkerSpec[]): React.ReactNode {
   // Walk the entire tree collecting every <marker>, regardless of nesting.
   // Mermaid is wildly inconsistent here:
   //   - flowcharts:           markers as direct children of <g> (no <defs>)
@@ -103,7 +118,8 @@ export function renderDefs(svgRoot: any): React.ReactNode {
       if (a?.id) markers.push([a.id, node]);
     }
   });
-  if (markers.length === 0) return null;
+  const hasSynthetic = syntheticMarkers && syntheticMarkers.length > 0;
+  if (markers.length === 0 && !hasSynthetic) return null;
   return (
     <Defs>
       {markers.map(([id, markerNode], i) => {
@@ -124,6 +140,31 @@ export function renderDefs(svgRoot: any): React.ReactNode {
           </Marker>
         );
       })}
+      {hasSynthetic
+        ? syntheticMarkers!
+            .map((spec) => blueprintFor(spec))
+            .filter((b): b is NonNullable<typeof b> => !!b)
+            .map((b) => (
+              <Marker
+                key={b.id}
+                id={b.id}
+                viewBox={b.viewBox}
+                refX={b.refX}
+                refY={b.refY}
+                markerWidth={b.width}
+                markerHeight={b.height}
+                markerUnits="userSpaceOnUse"
+                orient="auto"
+              >
+                <Path
+                  d={b.path}
+                  fill={b.fill}
+                  stroke={b.stroke}
+                  strokeWidth={b.strokeWidth || undefined}
+                />
+              </Marker>
+            ))
+        : null}
     </Defs>
   );
 }
@@ -207,6 +248,7 @@ export function renderGroup(
       customColors: opts.customColors,
       colorFilter: opts.colorFilter,
       resolveStyle: opts.resolveStyle,
+      edgeStyleOf: opts.edgeStyleOf,
       ancestors: nextAncestors,
       cssInherited: nextCssInherited,
     });
@@ -272,6 +314,7 @@ interface ShapeRenderCtx {
   customColors: VexelViewProps['colors'];
   colorFilter: VexelViewProps['colorFilter'];
   resolveStyle?: ResolveStyleFn;
+  edgeStyleOf?: RenderOptions['edgeStyleOf'];
   ancestors?: ElementContext[];
   cssInherited?: Record<string, string>;
 }
@@ -372,6 +415,18 @@ export function renderShape(
   // Streaming reveal — stroke-dasharray + fill-opacity.
   const revealOverride = revealOverrideFor(name, reveal);
 
+  // Edge styling — applies only to lines and paths (the elements that
+  // visually connect things). Resolved as default → byClass → byId →
+  // resolve(). Highest tier among author styling, below interactive state.
+  let edgeOverride: Record<string, any> = {};
+  if (
+    ctx.edgeStyleOf &&
+    (name === 'path' || name === 'line' || name === 'polyline')
+  ) {
+    const style = ctx.edgeStyleOf(name, rawAttrs?.id, elementClasses);
+    if (style) edgeOverride = edgeStyleToProps(style, rawAttrs);
+  }
+
   // Strip the raw `style` attr from the merge — we've already parsed it into
   // inlineStyle, and leaving it raw would override our overrides.
   const { style: _ignoredStyle, ...rawNoStyle } = raw;
@@ -388,6 +443,7 @@ export function renderShape(
     ...cssResolved,
     ...inlineStyle,
     ...customOverride,
+    ...edgeOverride,
     ...statusOverride,
     ...revealOverride,
   };
@@ -541,6 +597,45 @@ function mergeInherited(
   }
   for (const [k, v] of Object.entries(resolved)) {
     if (INHERITABLE.has(k)) out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * Convert an EdgeStyle into props the SVG primitive accepts. Honors arrow
+ * customization by overriding `marker-start` / `marker-end` to reference
+ * the synthetic markers Vexel emits in `<Defs>`.
+ */
+function edgeStyleToProps(
+  style: EdgeStyle,
+  rawAttrs: Record<string, string> | undefined,
+): Record<string, any> {
+  const out: Record<string, any> = {};
+  if (style.stroke !== undefined) out.stroke = style.stroke;
+  if (style.strokeWidth !== undefined) out.strokeWidth = style.strokeWidth;
+  const dash = resolveDasharray(style.strokeDasharray);
+  if (dash !== undefined) out.strokeDasharray = dash;
+  else if (style.strokeDasharray === 'solid') out.strokeDasharray = undefined; // unset
+  if (style.strokeLinecap !== undefined) out.strokeLinecap = style.strokeLinecap;
+  if (style.strokeLinejoin !== undefined) out.strokeLinejoin = style.strokeLinejoin;
+  if (style.opacity !== undefined) out.opacity = style.opacity;
+
+  if (style.arrow !== undefined) {
+    const color = style.arrowColor ?? style.stroke ?? rawAttrs?.stroke ?? '#000';
+    const scale = style.arrowScale ?? 1;
+    const arrows =
+      typeof style.arrow === 'string' || (style.arrow as any).d
+        ? { end: style.arrow as any }
+        : (style.arrow as { start?: any; end?: any });
+
+    if (arrows.start !== undefined) {
+      const id = makeMarkerId({ shape: arrows.start, color, scale });
+      out.markerStart = id ? `url(#${id})` : 'none';
+    }
+    if (arrows.end !== undefined) {
+      const id = makeMarkerId({ shape: arrows.end, color, scale });
+      out.markerEnd = id ? `url(#${id})` : 'none';
+    }
   }
   return out;
 }

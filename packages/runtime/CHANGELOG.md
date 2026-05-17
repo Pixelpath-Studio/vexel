@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.0.7 — Edge & arrow customization
+
+New `edges` prop lets consumers fully restyle connecting lines and their
+arrowheads without touching the source SVG. Layers on top of the SVG's own
+CSS at the highest author-tier priority (below interactive selection /
+streaming overlay).
+
+```tsx
+<VexelView
+  source={mermaidSvg}
+  edges={{
+    default: {
+      stroke: '#3b82f6',
+      strokeWidth: 2,
+      strokeDasharray: 'dashed',     // | 'solid' | 'dotted' | [5, 3, …]
+      strokeLinecap: 'round',
+      opacity: 0.9,
+      arrow: 'circle',               // 8 built-ins, or { d, viewBox, refX, refY }
+      arrowColor: '#1d4ed8',
+      arrowScale: 1.2,
+    },
+    byId: {
+      'L_A_B_0': { stroke: '#ef4444', arrow: 'diamond' },
+    },
+    byClass: {
+      'flowchart-link': { strokeWidth: 1.5 },
+    },
+    resolve: (id, shape) =>
+      id?.startsWith('critical_')
+        ? { stroke: 'red', arrow: 'triangle', arrowScale: 1.5 }
+        : undefined,
+  }}
+/>
+```
+
+### Built-in arrow shapes (`ArrowShape`)
+
+`triangle` (filled, default) · `triangle-open` · `arrow` (chevron) ·
+`circle` · `circle-open` · `square` · `diamond` · `bar` · `none` ·
+or a `{ d, viewBox?, refX?, refY?, width?, height?, outline? }` object
+for any custom path.
+
+### How it works
+
+For every unique (shape, color, scale) triple referenced by the config,
+Vexel generates one synthetic `<marker>` definition and emits it in `<Defs>`
+alongside the SVG's own markers. The matching `<path>` / `<line>` /
+`<polyline>` elements get `marker-end="url(#vexel-arrow-...)"` rewritten
+to point at the synthetic marker. References look up by id globally so
+multiple consumers and per-edge overrides coexist.
+
+The cascade resolution per edge is: `default` → each matching `byClass` →
+`byId` → `resolve(id, shape)`. Later layers override earlier ones property
+by property.
+
+A new demo tab ("Edges") exercises six representative configs against the
+complex flowchart fixture.
+
 ## 0.0.6 — Arrowhead markers
 
 Directed edges in Mermaid diagrams reference shared `<marker>` definitions

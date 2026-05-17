@@ -25,6 +25,8 @@ import Svg, { Rect } from 'react-native-svg';
 import { attrs, buildGraph, children } from './parseSvgGraph';
 import { loadSource } from './loadSource';
 import { DEFAULT_COLORS, renderDefs, renderGroup, renderShape, type ResolveStyleFn } from './renderer';
+import { makeMarkerId, type MarkerSpec } from './arrowMarkers';
+import type { EdgeStyle, EdgesConfig } from './types';
 import {
   resolveCascade,
   type ElementContext,
@@ -489,6 +491,79 @@ export function VexelView(props: VexelViewProps) {
     lastTapped,
   ]);
 
+  // ---------- Edge styling ----------
+  //
+  // Build the per-element `edgeStyleOf(name, id, classes)` closure and the
+  // set of unique marker specs (one synthetic <Marker> per shape+color+scale)
+  // that needs to land in <Defs>. Both depend only on `edges` + the graph,
+  // so they're memoized across re-renders for free.
+
+  const edgesProp = props.edges;
+
+  type EdgeStyleFn = (
+    name: string,
+    id: string | undefined,
+    classes: string[] | undefined,
+  ) => EdgeStyle | undefined;
+  const edgeStyleOf = useMemo<EdgeStyleFn | undefined>(() => {
+    if (!edgesProp) return undefined;
+    if (loadState.kind !== 'ready') return undefined;
+    const graph = loadState.graph;
+    return (name, id, classes) => {
+      // Only path/line/polyline are edges-ish. Caller already filters.
+      let merged: EdgeStyle | undefined;
+      const add = (s: EdgeStyle | undefined) => {
+        if (!s) return;
+        merged = merged ? { ...merged, ...s } : { ...s };
+      };
+      add(edgesProp.default);
+      if (classes && edgesProp.byClass) {
+        for (const c of classes) add(edgesProp.byClass[c]);
+      }
+      if (id && edgesProp.byId) add(edgesProp.byId[id]);
+      if (edgesProp.resolve) {
+        const shape = id ? graph.shapes.get(id) : undefined;
+        add(edgesProp.resolve(id, shape));
+      }
+      return merged;
+    };
+  }, [edgesProp, loadState]);
+
+  const markerSpecs = useMemo<MarkerSpec[]>(() => {
+    if (!edgesProp || loadState.kind !== 'ready') return [];
+    const specs: MarkerSpec[] = [];
+    const seen = new Set<string>();
+    const harvest = (style: EdgeStyle | undefined) => {
+      if (!style?.arrow) return;
+      const color = style.arrowColor ?? style.stroke ?? '#000000';
+      const scale = style.arrowScale ?? 1;
+      const arrows =
+        typeof style.arrow === 'string' || (style.arrow as any).d
+          ? { end: style.arrow as any }
+          : (style.arrow as { start?: any; end?: any });
+      for (const pos of ['start', 'end'] as const) {
+        const shape = arrows[pos];
+        if (!shape || shape === 'none') continue;
+        const id = makeMarkerId({ shape, color, scale });
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        specs.push({ shape, color, scale });
+      }
+    };
+    harvest(edgesProp.default);
+    if (edgesProp.byId) for (const s of Object.values(edgesProp.byId)) harvest(s);
+    if (edgesProp.byClass) for (const s of Object.values(edgesProp.byClass)) harvest(s);
+    if (edgesProp.resolve) {
+      // Best-effort: invoke resolve for every registered shape to pre-emit
+      // markers it might reference. Pure resolvers cost nothing; impure
+      // ones (closures over component state) just get called once more.
+      for (const [id, shape] of loadState.graph.shapes) {
+        harvest(edgesProp.resolve(id, shape));
+      }
+    }
+    return specs;
+  }, [edgesProp, loadState]);
+
   // ---------- Padding box ----------
 
   const pad = normalizePadding(padding);
@@ -602,7 +677,7 @@ export function VexelView(props: VexelViewProps) {
           }}
         >
           <Svg viewBox={graph.viewBox} width={svgWidth} height={svgHeight} preserveAspectRatio={par}>
-            {renderDefs(svgRoot)}
+            {renderDefs(svgRoot, markerSpecs)}
             <Rect
               x={graph.viewBoxRect.x}
               y={graph.viewBoxRect.y}
@@ -628,6 +703,7 @@ export function VexelView(props: VexelViewProps) {
                   skipText: rendering?.skipText,
                   interactiveBudget: rendering?.interactiveBudget,
                   resolveStyle,
+                  edgeStyleOf,
                 };
                 if (name === 'g') {
                   return renderGroup(child, opts, `top-${i}`, {
@@ -648,6 +724,7 @@ export function VexelView(props: VexelViewProps) {
                   customColors: colors,
                   colorFilter: props.colorFilter,
                   resolveStyle,
+                  edgeStyleOf,
                   ancestors: [svgRootElCtx],
                   cssInherited: svgRootInherited,
                 });

@@ -42,4 +42,9 @@ export type {
   CssWarning,
   FontFaceDeclaration,
   MediaContext,
+  // Edge styling (v0.0.7+)
+  ArrowShape,
+  CustomArrowShape,
+  EdgeStyle,
+  EdgesConfig,
 } from './types';

@@ -48,6 +48,7 @@ import { VexelView } from '@pixelpath/vexel';
 | **Selection mode** | `selectionMode: 'single' \| 'multiple' \| 'toggle'` | multi-select supported |
 | **Stream-by-stroke** | `streamReveal`, `streamSpeed`, `streamEasing`, `streamOrder`, `loop` | hand-natural easing, document/random/topological order |
 | **Themes** | `colors.byId`, `colors.byClass`, `colorFilter` | text stays legible across themes |
+| **Edge & arrow styling** | `edges.default`, `edges.byId`, `edges.byClass`, `edges.resolve` | line color / width / dash / cap; 8 built-in arrow shapes + custom path (v0.0.7+) |
 | **Zoom & pan** | `zoom`, `pan`, `onZoomChange` | pinch + drag + double-tap, bounded |
 | **Plugins** | `plugins`, `decorators` | ships `VexelLegend`, `VexelTooltip`; build your own |
 | **Accessibility** | `accessibilityLabel`, `respectReducedMotion` | auto-detects OS reduce-motion |
@@ -85,6 +86,44 @@ the SVG renders identically to a browser:
   onCSSWarning={(w) => console.warn(w.kind, w.message)}     // dev diagnostics
 />
 ```
+
+## Edge & arrow styling (v0.0.7+)
+
+Restyle every connecting line + arrowhead without touching the source SVG.
+`edges` cascades over the SVG's own CSS at the highest author-tier priority.
+
+```tsx
+<VexelView
+  source={mermaidSvg}
+  edges={{
+    default: {
+      stroke: '#3b82f6',
+      strokeWidth: 2,
+      strokeDasharray: 'dashed',        // | 'solid' | 'dotted' | [5, 3, …]
+      strokeLinecap: 'round',
+      opacity: 0.9,
+      arrow: 'circle',                  // 8 built-ins (below) or { d, viewBox }
+      arrowColor: '#1d4ed8',
+      arrowScale: 1.2,
+    },
+    byId: {
+      'L_A_B_0': { stroke: '#ef4444', arrow: 'diamond' },
+    },
+    byClass: {
+      'flowchart-link': { strokeWidth: 1.5 },
+    },
+    resolve: (id, shape) =>
+      id?.startsWith('critical_')
+        ? { stroke: 'red', arrow: 'triangle', arrowScale: 1.5 }
+        : undefined,
+  }}
+/>
+```
+
+**Built-in arrow shapes** (`ArrowShape`): `triangle` (default) ·
+`triangle-open` · `arrow` (chevron) · `circle` · `circle-open` · `square` ·
+`diamond` · `bar` · `none` · or a `{ d, viewBox?, refX?, refY?, outline? }`
+object for any custom path.
 
 ## Peer dependencies
 
