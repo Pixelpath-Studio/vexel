@@ -24,6 +24,7 @@ import { attrs, children, firstChild, textOf, walk } from './parseSvgGraph';
 import type { ElementContext } from './cssRules';
 import {
   blueprintFor,
+  extractCssArrowStyle,
   makeMarkerId,
   resolveDasharray,
   type MarkerSpec,
@@ -350,6 +351,7 @@ export function renderShape(
     ? rawAttrs.class.split(/\s+/).filter(Boolean)
     : undefined;
   let cssResolved: Record<string, any> = {};
+  let cssArrowStyle: Partial<EdgeStyle> | undefined;
   if (ctx.resolveStyle) {
     const elementCtx: ElementContext = {
       tag: name,
@@ -363,6 +365,7 @@ export function renderShape(
       ctx.cssInherited ?? {},
     );
     cssResolved = cssDeclarationsToProps(resolved);
+    cssArrowStyle = extractCssArrowStyle(resolved);
   }
 
   // Inline style="..." parsing — these are an author-origin tier sitting
@@ -416,15 +419,18 @@ export function renderShape(
   const revealOverride = revealOverrideFor(name, reveal);
 
   // Edge styling — applies only to lines and paths (the elements that
-  // visually connect things). Resolved as default → byClass → byId →
-  // resolve(). Highest tier among author styling, below interactive state.
+  // visually connect things). Two input sources combine here:
+  //   1. CSS-driven via `--vexel-arrow*` custom props (cascades like any
+  //      other style — works for selectors, !important, @media, etc.)
+  //   2. Imperative via `edges` prop (default → byClass → byId → resolve)
+  // Imperative wins per-property — it's the explicit caller intent.
   let edgeOverride: Record<string, any> = {};
-  if (
-    ctx.edgeStyleOf &&
-    (name === 'path' || name === 'line' || name === 'polyline')
-  ) {
-    const style = ctx.edgeStyleOf(name, rawAttrs?.id, elementClasses);
-    if (style) edgeOverride = edgeStyleToProps(style, rawAttrs);
+  if (name === 'path' || name === 'line' || name === 'polyline') {
+    const propsStyle = ctx.edgeStyleOf?.(name, rawAttrs?.id, elementClasses);
+    if (cssArrowStyle || propsStyle) {
+      const merged: EdgeStyle = { ...cssArrowStyle, ...propsStyle };
+      edgeOverride = edgeStyleToProps(merged, rawAttrs);
+    }
   }
 
   // Strip the raw `style` attr from the merge — we've already parsed it into

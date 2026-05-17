@@ -125,6 +125,43 @@ Restyle every connecting line + arrowhead without touching the source SVG.
 `diamond` · `bar` · `none` · or a `{ d, viewBox?, refX?, refY?, outline? }`
 object for any custom path.
 
+### CSS-driven arrows (v0.0.8+)
+
+Same arrows, driven by CSS instead of props. Put the rules in the SVG's
+own `<style>` block — they cascade like every other style, so `:hover`,
+`@media`, `!important`, `var()` all work.
+
+```css
+.flowchart-link {
+  stroke: #10b981;
+  stroke-width: 2.5;
+  --vexel-arrow: triangle-open;   /* shape name */
+  --vexel-arrow-color: #047857;   /* falls back to stroke */
+  --vexel-arrow-scale: 1.3;
+}
+
+.important {
+  --vexel-arrow-start: bar;       /* per-end overrides */
+  --vexel-arrow-end: diamond;
+}
+
+@media (prefers-color-scheme: dark) {
+  .flowchart-link { --vexel-arrow-color: #34d399; }
+}
+```
+
+| Custom prop | Value | Default |
+|---|---|---|
+| `--vexel-arrow` | shape name | — |
+| `--vexel-arrow-start` | shape name | (none) |
+| `--vexel-arrow-end` | shape name | (none) |
+| `--vexel-arrow-color` | CSS color | element's `stroke` |
+| `--vexel-arrow-scale` | number | 1 |
+
+If both `edges` prop and `--vexel-arrow*` CSS apply to the same edge, the
+`edges` prop wins per-property — explicit caller intent always trumps
+declarative style.
+
 ## Peer dependencies
 
 - `react` >= 18

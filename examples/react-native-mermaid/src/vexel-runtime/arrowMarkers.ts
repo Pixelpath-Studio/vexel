@@ -7,7 +7,8 @@
 // one `<marker>` definition in <Defs>; references on the line/path use a
 // stable id derived from the triple.
 
-import type { ArrowShape, CustomArrowShape } from './types';
+import type { ArrowShape, CustomArrowShape, EdgeStyle } from './types';
+import type { CssRule } from './cssRules';
 
 export interface MarkerSpec {
   shape: ArrowShape;
@@ -103,4 +104,138 @@ export function resolveDasharray(
   if (v === 'dotted') return '2,3';
   if (Array.isArray(v)) return v.join(',');
   return undefined;
+}
+
+// =============================================================================
+// CSS-driven arrow customization
+// =============================================================================
+//
+// SVG authors can style arrows via custom properties on edge selectors:
+//
+//   .flowchart-link {
+//     --vexel-arrow: triangle;            /* shape name, both ends */
+//     --vexel-arrow-color: #f59e0b;
+//     --vexel-arrow-scale: 1.5;
+//   }
+//
+//   .important {
+//     --vexel-arrow-end: diamond;         /* per-end override */
+//     --vexel-arrow-start: bar;
+//   }
+//
+// Cascades through the same resolver as every other style — `:hover`
+// pseudo-classes, `@media (prefers-color-scheme: dark)`, etc. all work.
+
+const VALID_SHAPES: ReadonlySet<string> = new Set([
+  'triangle', 'triangle-open', 'arrow', 'circle', 'circle-open',
+  'square', 'diamond', 'bar', 'none',
+]);
+
+function asArrowShape(v: string | undefined): ArrowShape | undefined {
+  if (!v) return undefined;
+  const t = v.trim();
+  if (VALID_SHAPES.has(t)) return t as ArrowShape;
+  return undefined;
+}
+
+/**
+ * Extract `--vexel-arrow*` custom props from a CSS cascade-resolved
+ * declaration map into a partial EdgeStyle the renderer can apply.
+ */
+export function extractCssArrowStyle(
+  decls: Record<string, string>,
+): Partial<EdgeStyle> | undefined {
+  const start = asArrowShape(decls['--vexel-arrow-start']);
+  const end = asArrowShape(decls['--vexel-arrow-end']);
+  const both = asArrowShape(decls['--vexel-arrow']);
+  const color = decls['--vexel-arrow-color']?.trim();
+  const scaleRaw = decls['--vexel-arrow-scale']?.trim();
+
+  let arrow: EdgeStyle['arrow'] | undefined;
+  if (start !== undefined || end !== undefined) {
+    arrow = { start, end };
+  } else if (both !== undefined) {
+    arrow = both;
+  }
+
+  if (arrow === undefined && color === undefined && scaleRaw === undefined) {
+    return undefined;
+  }
+
+  const out: Partial<EdgeStyle> = {};
+  if (arrow !== undefined) out.arrow = arrow;
+  if (color) out.arrowColor = color;
+  if (scaleRaw) {
+    const n = parseFloat(scaleRaw);
+    if (!Number.isNaN(n) && n > 0) out.arrowScale = n;
+  }
+  return out;
+}
+
+/**
+ * Scan a parsed stylesheet for all `--vexel-arrow*` references and emit a
+ * marker spec for each unique (shape, color, scale) triple — so the
+ * synthetic markers exist in `<Defs>` by the time the renderer resolves
+ * the per-element cascade.
+ *
+ * `var(--brand)` and other inherited references work only when the values
+ * are also reachable as :root variables or via cssVariables prop. Literal
+ * values always work.
+ */
+export function collectMarkerSpecsFromCss(
+  rules: CssRule[],
+  rootVariables: Record<string, string>,
+  userVariables: Record<string, string>,
+): MarkerSpec[] {
+  const variables = { ...userVariables, ...rootVariables };
+  const specs: MarkerSpec[] = [];
+  const seen = new Set<string>();
+
+  const resolveVar = (raw: string): string => {
+    const trimmed = raw.trim();
+    const m = trimmed.match(/^var\(\s*(--[^,)]+)(?:\s*,\s*([^)]+))?\s*\)$/);
+    if (!m) return trimmed;
+    const ref = variables[m[1].trim()];
+    if (ref !== undefined) return ref.trim();
+    return (m[2] ?? '').trim();
+  };
+
+  for (const rule of rules) {
+    let shape: string | undefined;
+    let start: string | undefined;
+    let end: string | undefined;
+    let color: string | undefined;
+    let scale: number = 1;
+    let stroke: string | undefined;
+    let hasArrow = false;
+    for (const d of rule.declarations) {
+      const v = resolveVar(d.value);
+      if (d.property === '--vexel-arrow') { shape = v; hasArrow = true; }
+      else if (d.property === '--vexel-arrow-start') { start = v; hasArrow = true; }
+      else if (d.property === '--vexel-arrow-end') { end = v; hasArrow = true; }
+      else if (d.property === '--vexel-arrow-color') { color = v; }
+      else if (d.property === '--vexel-arrow-scale') {
+        const n = parseFloat(v);
+        if (!Number.isNaN(n) && n > 0) scale = n;
+      }
+      else if (d.property === 'stroke') { stroke = v; }
+    }
+    if (!hasArrow) continue;
+    const effColor = color ?? stroke ?? '#000000';
+    const positions: ArrowShape[] = [];
+    const validStart = asArrowShape(start);
+    const validEnd = asArrowShape(end);
+    const validBoth = asArrowShape(shape);
+    if (validStart && validStart !== 'none') positions.push(validStart);
+    if (validEnd && validEnd !== 'none') positions.push(validEnd);
+    if (!positions.length && validBoth && validBoth !== 'none') positions.push(validBoth);
+    for (const s of positions) {
+      const id = makeMarkerId({ shape: s, color: effColor, scale });
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        specs.push({ shape: s, color: effColor, scale });
+      }
+    }
+  }
+  return specs;
 }

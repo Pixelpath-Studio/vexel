@@ -15,7 +15,8 @@ type Preset =
   | 'dashed-blue-circle'
   | 'thin-dotted-bar'
   | 'rainbow-by-id'
-  | 'custom-resolver';
+  | 'custom-resolver'
+  | 'css-driven';
 
 const PRESETS: Record<Preset, EdgesConfig | undefined> = {
   'mermaid-default': undefined,
@@ -72,11 +73,36 @@ const PRESETS: Record<Preset, EdgesConfig | undefined> = {
       return undefined;
     },
   },
+  // 'css-driven' isn't a config — it uses a different SVG (with our CSS
+  // injected). Marker entry just so the switch covers the case.
+  'css-driven': undefined,
 };
+
+/**
+ * The CSS-driven preset works by injecting a `<style>` rule into the SVG
+ * that uses `--vexel-arrow*` custom props. No `edges` prop is set —
+ * Vexel reads the cascade and applies arrows automatically.
+ */
+function withCssArrowOverride(svg: string): string {
+  const css = `
+    .flowchart-link {
+      stroke: #10b981;
+      stroke-width: 2.5;
+      --vexel-arrow: triangle-open;
+      --vexel-arrow-color: #047857;
+      --vexel-arrow-scale: 1.3;
+    }
+  `;
+  return svg.replace(/<style>/, `<style>${css}`);
+}
 
 export function EdgeStyleScreen() {
   const [preset, setPreset] = useState<Preset>('mermaid-default');
   const edges = useMemo(() => PRESETS[preset], [preset]);
+  const source = useMemo(
+    () => (preset === 'css-driven' ? withCssArrowOverride(FLOWCHART_COMPLEX) : FLOWCHART_COMPLEX),
+    [preset],
+  );
 
   return (
     <ScrollView contentContainerStyle={s.scroll}>
@@ -104,7 +130,7 @@ export function EdgeStyleScreen() {
 
       <View style={s.canvas}>
         <VexelView
-          source={FLOWCHART_COMPLEX}
+          source={source}
           fit="contain"
           padding={16}
           highlight="none"
@@ -121,6 +147,7 @@ export function EdgeStyleScreen() {
         {preset === 'thin-dotted-bar' && 'Thin gray dotted line with bar marker (no arrow head).'}
         {preset === 'rainbow-by-id' && 'Each edge id mapped to a different color via byId.'}
         {preset === 'custom-resolver' && 'resolve() applies orange diamond only to edges touching G/H.'}
+        {preset === 'css-driven' && 'No edges prop. CSS rule injects --vexel-arrow: triangle-open + --vexel-arrow-color directly in the SVG <style>.'}
       </Text>
     </ScrollView>
   );

@@ -9,6 +9,11 @@ import {
   type ElementContext,
   type ResolveContext,
 } from './cssRules.ts';
+import {
+  collectMarkerSpecsFromCss,
+  extractCssArrowStyle,
+  makeMarkerId,
+} from './arrowMarkers.ts';
 
 let passed = 0;
 let failed = 0;
@@ -477,6 +482,96 @@ describe('integration: Mermaid-style stylesheet', () => {
       ctx: baseCtx,
     });
     assert(resolved.fill === undefined, 'should not match without svg ancestor');
+  });
+});
+
+// ============================================================================
+// CSS-driven arrow customization (--vexel-arrow* custom props)
+// ============================================================================
+
+describe('extractCssArrowStyle', () => {
+  it('reads --vexel-arrow as both ends', () => {
+    const style = extractCssArrowStyle({
+      '--vexel-arrow': 'triangle',
+      '--vexel-arrow-color': '#f59e0b',
+      '--vexel-arrow-scale': '1.5',
+    });
+    eq(style?.arrow, 'triangle');
+    eq(style?.arrowColor, '#f59e0b');
+    eq(style?.arrowScale, 1.5);
+  });
+
+  it('reads per-end --vexel-arrow-start / --vexel-arrow-end', () => {
+    const style = extractCssArrowStyle({
+      '--vexel-arrow-start': 'bar',
+      '--vexel-arrow-end': 'diamond',
+    });
+    eq(style?.arrow, { start: 'bar', end: 'diamond' });
+  });
+
+  it('returns undefined when no vexel-arrow decls present', () => {
+    const style = extractCssArrowStyle({ stroke: 'red', 'stroke-width': '2' });
+    assert(style === undefined);
+  });
+
+  it('rejects unknown shape names silently', () => {
+    const style = extractCssArrowStyle({ '--vexel-arrow': 'not-a-shape' });
+    assert(style === undefined);
+  });
+});
+
+describe('collectMarkerSpecsFromCss', () => {
+  it('harvests one spec per unique (shape, color, scale)', () => {
+    const css = `
+      .a { --vexel-arrow: triangle; --vexel-arrow-color: red; }
+      .b { --vexel-arrow: triangle; --vexel-arrow-color: red; }  /* dup */
+      .c { --vexel-arrow: circle; --vexel-arrow-color: blue; --vexel-arrow-scale: 2; }
+    `;
+    const parsed = parseStylesheet(css);
+    const specs = collectMarkerSpecsFromCss(parsed.rules, {}, {});
+    eq(specs.length, 2);
+    eq(specs[0], { shape: 'triangle', color: 'red', scale: 1 });
+    eq(specs[1], { shape: 'circle', color: 'blue', scale: 2 });
+  });
+
+  it('falls back to `stroke` value for color when --vexel-arrow-color absent', () => {
+    const css = `.a { stroke: #047857; --vexel-arrow: triangle-open; }`;
+    const parsed = parseStylesheet(css);
+    const specs = collectMarkerSpecsFromCss(parsed.rules, {}, {});
+    eq(specs.length, 1);
+    eq(specs[0].shape, 'triangle-open');
+    eq(specs[0].color, '#047857');
+  });
+
+  it('resolves var() against rootVariables', () => {
+    const css = `
+      :root { --brand: #f59e0b; }
+      .a { --vexel-arrow: diamond; --vexel-arrow-color: var(--brand); }
+    `;
+    const parsed = parseStylesheet(css);
+    const specs = collectMarkerSpecsFromCss(parsed.rules, parsed.rootVariables, {});
+    eq(specs.length, 1);
+    eq(specs[0].color, '#f59e0b');
+  });
+
+  it('emits separate specs for each end when --vexel-arrow-start/end differ', () => {
+    const css = `.a { --vexel-arrow-start: bar; --vexel-arrow-end: triangle; --vexel-arrow-color: green; }`;
+    const parsed = parseStylesheet(css);
+    const specs = collectMarkerSpecsFromCss(parsed.rules, {}, {});
+    eq(specs.length, 2);
+    eq(specs[0].shape, 'bar');
+    eq(specs[1].shape, 'triangle');
+  });
+});
+
+describe('makeMarkerId', () => {
+  it('produces stable, url-safe ids', () => {
+    const id = makeMarkerId({ shape: 'triangle', color: '#f59e0b', scale: 1.5 });
+    eq(id, 'vexel-arrow-triangle-f59e0b-1_5');
+  });
+
+  it('returns empty string for `none`', () => {
+    eq(makeMarkerId({ shape: 'none', color: 'x', scale: 1 }), '');
   });
 });
 

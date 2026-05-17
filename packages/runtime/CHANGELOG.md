@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.0.8 — CSS-driven arrow customization
+
+`edges` (v0.0.7) is the imperative path; this release adds the
+**declarative** path. SVG authors can style arrows by writing CSS:
+
+```css
+/* inside the SVG's own <style>, OR in a CSS-in-JS string the host injects */
+.flowchart-link {
+  stroke: #10b981;
+  stroke-width: 2.5;
+  --vexel-arrow: triangle-open;     /* shape name */
+  --vexel-arrow-color: #047857;     /* falls back to stroke */
+  --vexel-arrow-scale: 1.3;
+}
+
+.flowchart-link.important {
+  --vexel-arrow-start: bar;          /* per-end overrides */
+  --vexel-arrow-end: diamond;
+}
+
+@media (prefers-color-scheme: dark) {
+  .flowchart-link { --vexel-arrow-color: #34d399; }
+}
+```
+
+Same cascade as everything else, so `:hover` (mapped to Vexel selection
+state), `@media`, `!important`, `var()` chains, all work. Imperative
+`edges` prop still wins per-property when both are set.
+
+### Custom property reference
+
+| Property | Type | Default |
+|---|---|---|
+| `--vexel-arrow` | ArrowShape name | — |
+| `--vexel-arrow-start` | ArrowShape name | (none) |
+| `--vexel-arrow-end` | ArrowShape name | (none) |
+| `--vexel-arrow-color` | CSS color | element's `stroke` |
+| `--vexel-arrow-scale` | number | 1 |
+
+`--vexel-arrow-start` / `--vexel-arrow-end` override `--vexel-arrow` when
+either is set. `none` strips the marker.
+
+### Synthetic-marker pre-emission
+
+The renderer scans `parsedCss.rules` ahead of time, resolves `var()`
+references against `:root` + the `cssVariables` prop, and emits one
+synthetic `<marker>` per unique (shape, color, scale) triple. So the
+marker definitions exist in `<Defs>` by the time the cascade resolves
+the matching `marker-end="url(...)"` references on each edge.
+
+49 unit tests passing (10 new ones cover `extractCssArrowStyle`,
+`collectMarkerSpecsFromCss`, `makeMarkerId`).
+
+A new `css-driven` preset in the "Edges" demo tab proves the round-trip:
+the SVG is rendered unmodified except for a `<style>` rule injection that
+sets `--vexel-arrow: triangle-open` — Vexel rewrites every edge's arrow
+to an open-triangle outline in `#047857`.
+
 ## 0.0.7 — Edge & arrow customization
 
 New `edges` prop lets consumers fully restyle connecting lines and their

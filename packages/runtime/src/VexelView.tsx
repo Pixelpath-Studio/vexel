@@ -25,7 +25,7 @@ import Svg, { Rect } from 'react-native-svg';
 import { attrs, buildGraph, children } from './parseSvgGraph';
 import { loadSource } from './loadSource';
 import { DEFAULT_COLORS, renderDefs, renderGroup, renderShape, type ResolveStyleFn } from './renderer';
-import { makeMarkerId, type MarkerSpec } from './arrowMarkers';
+import { collectMarkerSpecsFromCss, makeMarkerId, type MarkerSpec } from './arrowMarkers';
 import type { EdgeStyle, EdgesConfig } from './types';
 import {
   resolveCascade,
@@ -530,9 +530,17 @@ export function VexelView(props: VexelViewProps) {
   }, [edgesProp, loadState]);
 
   const markerSpecs = useMemo<MarkerSpec[]>(() => {
-    if (!edgesProp || loadState.kind !== 'ready') return [];
+    if (loadState.kind !== 'ready') return [];
     const specs: MarkerSpec[] = [];
     const seen = new Set<string>();
+    const push = (spec: MarkerSpec) => {
+      const id = makeMarkerId(spec);
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      specs.push(spec);
+    };
+
+    // 1) Imperative — from the `edges` prop.
     const harvest = (style: EdgeStyle | undefined) => {
       if (!style?.arrow) return;
       const color = style.arrowColor ?? style.stroke ?? '#000000';
@@ -544,25 +552,30 @@ export function VexelView(props: VexelViewProps) {
       for (const pos of ['start', 'end'] as const) {
         const shape = arrows[pos];
         if (!shape || shape === 'none') continue;
-        const id = makeMarkerId({ shape, color, scale });
-        if (!id || seen.has(id)) continue;
-        seen.add(id);
-        specs.push({ shape, color, scale });
+        push({ shape, color, scale });
       }
     };
-    harvest(edgesProp.default);
-    if (edgesProp.byId) for (const s of Object.values(edgesProp.byId)) harvest(s);
-    if (edgesProp.byClass) for (const s of Object.values(edgesProp.byClass)) harvest(s);
-    if (edgesProp.resolve) {
-      // Best-effort: invoke resolve for every registered shape to pre-emit
-      // markers it might reference. Pure resolvers cost nothing; impure
-      // ones (closures over component state) just get called once more.
-      for (const [id, shape] of loadState.graph.shapes) {
-        harvest(edgesProp.resolve(id, shape));
+    if (edgesProp) {
+      harvest(edgesProp.default);
+      if (edgesProp.byId) for (const s of Object.values(edgesProp.byId)) harvest(s);
+      if (edgesProp.byClass) for (const s of Object.values(edgesProp.byClass)) harvest(s);
+      if (edgesProp.resolve) {
+        for (const [id, shape] of loadState.graph.shapes) {
+          harvest(edgesProp.resolve(id, shape));
+        }
       }
     }
+
+    // 2) CSS-driven — scan the SVG's <style> block for --vexel-arrow* decls.
+    const cssSpecs = collectMarkerSpecsFromCss(
+      loadState.parsedCss.rules,
+      loadState.parsedCss.rootVariables,
+      userCssVariables ?? {},
+    );
+    for (const s of cssSpecs) push(s);
+
     return specs;
-  }, [edgesProp, loadState]);
+  }, [edgesProp, loadState, userCssVariables]);
 
   // ---------- Padding box ----------
 
