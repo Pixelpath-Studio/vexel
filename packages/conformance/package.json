@@ -1,7 +1,7 @@
 {
-  "name": "@trace/conformance",
+  "name": "@pixelpath/vexel-conformance",
   "version": "0.1.0",
-  "description": "Conformance test suite for the Trace vector graphics format.",
+  "description": "Conformance test suite for the Vexel vector graphics format.",
   "license": "Apache-2.0",
   "private": false,
   "main": "runner/index.js",

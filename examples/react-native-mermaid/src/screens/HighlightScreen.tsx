@@ -5,14 +5,14 @@
 
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { TraceView } from '../trace-runtime';
+import { VexelView } from '../vexel-runtime';
 import type {
   HighlightMode,
   Graph,
   SelectionMode,
   SelectionResolver,
   SelectionState,
-} from '../trace-runtime';
+} from '../vexel-runtime';
 import { animalSvg } from '../../assets/animalSvg';
 
 const MODES: HighlightMode[] = ['none', 'single', 'connected', 'custom'];
@@ -64,7 +64,7 @@ export function HighlightScreen() {
       </Text>
 
       <View style={styles.canvas}>
-        <TraceView
+        <VexelView
           source={animalSvg}
           highlight={highlight}
           customResolver={highlight === 'custom' ? reachableResolver : undefined}

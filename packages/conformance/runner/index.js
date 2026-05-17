@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// @trace/conformance runner.
+// @pixelpath/vexel-conformance runner.
 //
-// Walks every fixture under fixtures/, regenerates output.trace from input.svg
-// using the trace-cli binary (workspace-built), and compares against the
+// Walks every fixture under fixtures/, regenerates output.vex from input.svg
+// using the vexel-cli binary (workspace-built), and compares against the
 // checked-in canonical bytes. Also runs each fixture's queries.json against
 // the parsed file.
 //
@@ -19,20 +19,20 @@ const CLI = process.env.TRACE_CLI || findCli();
 
 function findCli() {
   const candidates = [
-    path.join(ROOT, 'target', 'release', 'trace-cli'),
-    path.join(ROOT, 'target', 'debug', 'trace-cli'),
+    path.join(ROOT, 'target', 'release', 'vexel-cli'),
+    path.join(ROOT, 'target', 'debug', 'vexel-cli'),
   ];
   for (const c of candidates) if (fs.existsSync(c)) return c;
   // Fallback: build it.
-  const r = spawnSync('cargo', ['build', '-p', 'trace-cli'], { cwd: ROOT, stdio: 'inherit' });
-  if (r.status !== 0) throw new Error('trace-cli not found and `cargo build -p trace-cli` failed');
-  return path.join(ROOT, 'target', 'debug', 'trace-cli');
+  const r = spawnSync('cargo', ['build', '-p', 'vexel-cli'], { cwd: ROOT, stdio: 'inherit' });
+  if (r.status !== 0) throw new Error('vexel-cli not found and `cargo build -p vexel-cli` failed');
+  return path.join(ROOT, 'target', 'debug', 'vexel-cli');
 }
 
 function run(...args) {
   const r = spawnSync(CLI, args, { encoding: 'utf-8' });
   if (r.status !== 0) {
-    throw new Error(`trace-cli ${args.join(' ')}: ${r.stderr}`);
+    throw new Error(`vexel-cli ${args.join(' ')}: ${r.stderr}`);
   }
   return r.stdout;
 }
@@ -59,13 +59,13 @@ const fixtures = fs.readdirSync(FIXTURES)
   .filter((d) => fs.statSync(d).isDirectory())
   .sort();
 
-console.log(`@trace/conformance — ${fixtures.length} fixtures\n`);
+console.log(`@pixelpath/vexel-conformance — ${fixtures.length} fixtures\n`);
 
 for (const dir of fixtures) {
   const name = path.basename(dir);
   console.log(`▶ ${name}`);
 
-  const goldenPath = path.join(dir, 'output.trace');
+  const goldenPath = path.join(dir, 'output.vex');
   const queriesPath = path.join(dir, 'queries.json');
   const svgPath = path.join(dir, 'input.svg');
 
@@ -73,7 +73,7 @@ for (const dir of fixtures) {
   // gen_fixtures.rs so the STRS section comes out byte-identical.
   if (fs.existsSync(svgPath)) {
     try {
-      const tmp = path.join(dir, '.actual.trace');
+      const tmp = path.join(dir, '.actual.vex');
       run('convert', svgPath, '--out', tmp, '--generator', 'trace-conformance');
       const actual = fs.readFileSync(tmp);
       const golden = fs.readFileSync(goldenPath);

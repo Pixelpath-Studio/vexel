@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/trace-core", "crates/trace-cli"]
+members = ["crates/vexel-core", "crates/vexel-cli"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,7 +11,7 @@ rust-version = "1.80"
 
 [workspace.lints.rust]
 # `deny` rather than `forbid` so individual crates can opt out for narrow,
-# well-justified cases (e.g. POSIX signal hygiene in the CLI). `trace-core`
+# well-justified cases (e.g. POSIX signal hygiene in the CLI). `vexel-core`
 # itself contains zero unsafe code.
 unsafe_code = "deny"
 unused_must_use = "deny"

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /*
- * @trace/runtime postinstall — SPEC §13.4 trust model.
+ * @pixelpath/vexel postinstall — SPEC §13.4 trust model.
  *
- * Downloads the matching TraceCore.xcframework (iOS) and trace-android.aar
+ * Downloads the matching VexelCore.xcframework (iOS) and vexel-android.aar
  * (Android) from the GitHub release for this package's version, verifies the
  * SHA-256 hash against the pinned hashes below, and stages the binaries where
  * CocoaPods / Gradle expect them. Modeled after esbuild and sharp's
@@ -24,19 +24,19 @@ const BASE = `https://github.com/curo-trace/trace/releases/download/v${VERSION}`
 // Pinned SHA-256 hashes — updated by ./scripts/release.sh in CI when a new
 // version ships. Empty during development; postinstall is a no-op in that case.
 const PINS = {
-  'TraceCore.xcframework.zip': '',
-  'trace-android.aar': '',
+  'VexelCore.xcframework.zip': '',
+  'vexel-android.aar': '',
 };
 
 function noop(reason) {
-  console.log(`@trace/runtime: ${reason}`);
+  console.log(`@pixelpath/vexel: ${reason}`);
   process.exit(0);
 }
 
 if (process.env.TRACE_BUILD_FROM_SOURCE === '1') {
   noop('TRACE_BUILD_FROM_SOURCE=1; skipping prebuilt download');
 }
-if (!PINS['TraceCore.xcframework.zip'] && !PINS['trace-android.aar']) {
+if (!PINS['VexelCore.xcframework.zip'] && !PINS['vexel-android.aar']) {
   noop(`no pinned hashes for v${VERSION} (development install)`);
 }
 
@@ -76,22 +76,22 @@ async function download(name) {
   const url = `${BASE}/${name}`;
   const out = path.join(root, 'cache', name);
   fs.mkdirSync(path.dirname(out), { recursive: true });
-  console.log(`@trace/runtime: downloading ${name}`);
+  console.log(`@pixelpath/vexel: downloading ${name}`);
   await fetch(url, out);
   const got = await sha256(out);
   if (got !== expected) {
-    throw new Error(`@trace/runtime: ${name} hash mismatch (expected ${expected}, got ${got})`);
+    throw new Error(`@pixelpath/vexel: ${name} hash mismatch (expected ${expected}, got ${got})`);
   }
 }
 
 (async () => {
   try {
-    await download('TraceCore.xcframework.zip');
-    await download('trace-android.aar');
-    console.log('@trace/runtime: prebuilt binaries verified');
+    await download('VexelCore.xcframework.zip');
+    await download('vexel-android.aar');
+    console.log('@pixelpath/vexel: prebuilt binaries verified');
   } catch (e) {
     console.error(e.message);
-    console.error('@trace/runtime: install failed. Set TRACE_BUILD_FROM_SOURCE=1 to build locally.');
+    console.error('@pixelpath/vexel: install failed. Set TRACE_BUILD_FROM_SOURCE=1 to build locally.');
     process.exit(1);
   }
 })();

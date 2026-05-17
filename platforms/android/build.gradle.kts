@@ -1,13 +1,13 @@
-// Android library for Trace.
+// Android library for Vexel.
 //
 // Build prerequisites (SPEC §13.3):
-//   1. Cross-compile trace-core for Android targets via cargo-ndk:
+//   1. Cross-compile vexel-core for Android targets via cargo-ndk:
 //        cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -t x86 \
-//          --release build -p trace-core
-//      That writes libtrace_core.so into target/<triple>/release/.
+//          --release build -p vexel-core
+//      That writes libvexel_core.so into target/<triple>/release/.
 //   2. Run scripts/copy-jni-libs.sh to stage them under src/main/jniLibs/.
 //   3. Generate Kotlin bindings:
-//        uniffi-bindgen-kotlin crates/trace-core/src/api/api.udl \
+//        uniffi-bindgen-kotlin crates/vexel-core/src/api/api.udl \
 //          --out-dir platforms/android/src/main/kotlin/co/trace/generated/
 //   4. ./gradlew :trace:assembleRelease
 //
@@ -20,7 +20,7 @@ plugins {
 }
 
 android {
-    namespace = "co.trace"
+    namespace = "co.vexel"
     compileSdk = 34
     defaultConfig {
         minSdk = 24  // Vulkan availability + Skia floor.

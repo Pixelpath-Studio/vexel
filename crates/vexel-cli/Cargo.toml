@@ -1,0 +1,18 @@
+[package]
+name = "vexel-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Reference CLI for the Vexel vector graphics format."
+
+[[bin]]
+name = "vexel-cli"
+path = "src/main.rs"
+
+[dependencies]
+vexel-core = { path = "../vexel-core" }
+
+[lints]
+workspace = true

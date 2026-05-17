@@ -1,17 +1,17 @@
-// BasicScreen — minimal TraceView usage. Zero customization beyond a source.
+// BasicScreen — minimal VexelView usage. Zero customization beyond a source.
 // Proves the smallest meaningful integration shape.
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { TraceView } from '../trace-runtime';
+import { VexelView } from '../vexel-runtime';
 import { animalSvg } from '../../assets/animalSvg';
 
 export function BasicScreen() {
   return (
     <View style={styles.root}>
-      <Text style={styles.code}>{`<TraceView source={animalSvg} />`}</Text>
+      <Text style={styles.code}>{`<VexelView source={animalSvg} />`}</Text>
       <View style={styles.canvas}>
-        <TraceView source={animalSvg} />
+        <VexelView source={animalSvg} />
       </View>
     </View>
   );

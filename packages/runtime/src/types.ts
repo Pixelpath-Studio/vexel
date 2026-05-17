@@ -1,4 +1,4 @@
-// Public type surface for @trace/runtime — SPEC §7.2.
+// Public type surface for @pixelpath/vexel — SPEC §7.2.
 
 import type { ViewStyle } from 'react-native';
 
@@ -27,7 +27,7 @@ export type ConvertOptions = {
 
 export type Backpressure = 'queue' | 'catchUp' | 'drop';
 
-export interface TraceSession {
+export interface VexelSession {
   /** Append an SVG fragment and schedule its animations. Returns new ids. */
   append(svgFragment: string, anim?: FragmentAnim): string[];
   /** Remove an element by id. */
@@ -40,12 +40,12 @@ export interface TraceSession {
   reset(): void;
   /** Monotonic version counter. Bumped by every mutation. */
   version(): number;
-  /** Internal — used by TraceView to subscribe to mutations. */
+  /** Internal — used by VexelView to subscribe to mutations. */
   _subscribe(listener: () => void): () => void;
 }
 
-export interface TraceViewProps {
-  source: Uint8Array | string | TraceSession;
+export interface VexelViewProps {
+  source: Uint8Array | string | VexelSession;
   highlightedIds?: string[];
   highlightColor?: string;
   onElementPress?: (id: string, x: number, y: number) => void;

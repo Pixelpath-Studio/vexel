@@ -9,8 +9,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { TraceView } from '../trace-runtime';
-import type { Alignment, Fit, Graph, TraceError, TraceSource } from '../trace-runtime';
+import { VexelView } from '../vexel-runtime';
+import type { Alignment, Fit, Graph, VexelError, VexelSource } from '../vexel-runtime';
 import { animalSvg } from '../../assets/animalSvg';
 
 const FITS: Fit[] = ['contain', 'cover', 'fill', 'none', 'scale-down'];
@@ -29,7 +29,7 @@ export function LayoutScreen() {
   const [sourceMode, setSourceMode] = useState<SourceMode>('string');
   const [statusLine, setStatusLine] = useState('idle');
 
-  const source: TraceSource = useMemo(() => {
+  const source: VexelSource = useMemo(() => {
     if (sourceMode === 'string') return animalSvg;
     if (sourceMode === 'uint8array') {
       return new TextEncoder().encode(animalSvg);
@@ -68,7 +68,7 @@ export function LayoutScreen() {
       <Text style={styles.status} numberOfLines={1}>{statusLine}</Text>
 
       <View style={styles.canvas}>
-        <TraceView
+        <VexelView
           key={`${sourceMode}-${fit}-${alignment}-${padding}`}
           source={source}
           fit={fit}
@@ -76,7 +76,7 @@ export function LayoutScreen() {
           padding={padding}
           highlight="none"
           onLoad={(g: Graph) => setStatusLine(`onLoad → ${g.shapes.size} shapes`)}
-          onError={(e: TraceError) => setStatusLine(`onError → ${e.kind}: ${e.message.slice(0, 40)}`)}
+          onError={(e: VexelError) => setStatusLine(`onError → ${e.kind}: ${e.message.slice(0, 40)}`)}
           placeholder={() => <Text style={{ color: '#9ca3af' }}>parsing…</Text>}
           errorFallback={(e) => (
             <View style={{ alignItems: 'center' }}>

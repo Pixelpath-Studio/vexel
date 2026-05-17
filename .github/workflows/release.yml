@@ -27,11 +27,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-      - run: cargo build --release --target ${{ matrix.target }} -p trace-core
+      - run: cargo build --release --target ${{ matrix.target }} -p vexel-core
       - uses: actions/upload-artifact@v4
         with:
-          name: trace-core-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/libtrace_core.*
+          name: vexel-core-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/libvexel_core.*
 
   ios-xcframework:
     needs: rust-binaries
@@ -40,11 +40,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          pattern: trace-core-aarch64-apple-ios*
+          pattern: vexel-core-aarch64-apple-ios*
           path: target/
       - uses: actions/download-artifact@v4
         with:
-          pattern: trace-core-x86_64-apple-ios
+          pattern: vexel-core-x86_64-apple-ios
           path: target/
       - name: install uniffi-bindgen-swift
         run: cargo install uniffi-bindgen-swift
@@ -54,8 +54,8 @@ jobs:
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
         with:
           upload_url: '${{ github.event.release.upload_url }}'
-          asset_path: platforms/ios/TraceCore.xcframework
-          asset_name: TraceCore.xcframework.zip
+          asset_path: platforms/ios/VexelCore.xcframework
+          asset_name: VexelCore.xcframework.zip
           asset_content_type: application/zip
 
   android-aar:
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          pattern: trace-core-*-android*
+          pattern: vexel-core-*-android*
           path: target/
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
@@ -82,12 +82,12 @@ jobs:
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
-      - name: publish @trace/runtime
+      - name: publish @pixelpath/vexel
         run: npm publish -w packages/runtime --access public
         env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
-      - name: publish @trace/cli
+      - name: publish @pixelpath/vexel-cli
         run: npm publish -w packages/cli --access public
         env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
-      - name: publish @trace/conformance
+      - name: publish @pixelpath/vexel-conformance
         run: npm publish -w packages/conformance --access public
         env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }

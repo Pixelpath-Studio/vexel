@@ -4,8 +4,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { TraceView } from '../trace-runtime';
-import type { ShapeKind } from '../trace-runtime';
+import { VexelView } from '../vexel-runtime';
+import type { ShapeKind } from '../vexel-runtime';
 import { animalSvg } from '../../assets/animalSvg';
 
 type Mode = 'plain' | 'byId' | 'byClass' | 'invert' | 'monochrome';
@@ -54,7 +54,7 @@ export function ThemeScreen() {
       <PillRow value={mode} options={['plain', 'byId', 'byClass', 'invert', 'monochrome']} onChange={(v) => setMode(v as Mode)} />
 
       <View style={styles.canvas}>
-        <TraceView source={animalSvg} highlight="single" colors={colors} colorFilter={colorFilter} />
+        <VexelView source={animalSvg} highlight="single" colors={colors} colorFilter={colorFilter} />
       </View>
 
       <Text style={styles.hint}>

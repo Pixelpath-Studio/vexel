@@ -1,6 +1,6 @@
-# Contributing to Trace
+# Contributing to Vexel
 
-Thanks for your interest. Trace is intended to be infrastructure — a format with a
+Thanks for your interest. Vexel is intended to be infrastructure — a format with a
 reference runtime — so contributions to the spec, the conformance suite, and the
 reference implementation are all welcome.
 
@@ -8,10 +8,10 @@ reference implementation are all welcome.
 
 | Tool | Min version | Used for |
 |---|---|---|
-| Rust | 1.80 | The `trace-core` crate (everything algorithmic). |
-| Node | 20 | The `@trace/*` npm packages and conformance runner. |
-| Xcode | 15 | Building `Trace.framework` and the iOS example. |
-| Android Studio | Hedgehog (2023.1) | Building `trace-android.aar` and the Android example. |
+| Rust | 1.80 | The `vexel-core` crate (everything algorithmic). |
+| Node | 20 | The `@pixelpath/vexel-*` npm packages and conformance runner. |
+| Xcode | 15 | Building `Vexel.framework` and the iOS example. |
+| Android Studio | Hedgehog (2023.1) | Building `vexel-android.aar` and the Android example. |
 | `cargo-ndk` | 3.5 | Cross-compiling the Rust core for Android targets. |
 
 Install Rust cross-compilation targets you need to build for:
@@ -25,19 +25,19 @@ rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-and
 
 See [SPEC.md §12](SPEC.md#12-repository-layout) for the full layout. Quick map:
 
-- `crates/trace-core/` — the Rust core (parse, convert, hit-test, serialize).
-- `packages/runtime/` — `@trace/runtime` npm package (React Native binding).
-- `packages/cli/` — `@trace/cli` npm package.
-- `packages/conformance/` — `@trace/conformance` npm package (fixture suite).
-- `platforms/ios/` — `Trace.framework` (SwiftPM + CocoaPods).
-- `platforms/android/` — `co.trace:trace-android` AAR.
+- `crates/vexel-core/` — the Rust core (parse, convert, hit-test, serialize).
+- `packages/runtime/` — `@pixelpath/vexel` npm package (React Native binding).
+- `packages/cli/` — `@pixelpath/vexel-cli` npm package.
+- `packages/conformance/` — `@pixelpath/vexel-conformance` npm package (fixture suite).
+- `platforms/ios/` — `Vexel.framework` (SwiftPM + CocoaPods).
+- `platforms/android/` — `co.vexel:vexel-android` AAR.
 - `examples/` — runnable demo apps.
 
 ## Running tests
 
 ```bash
 # Rust core
-cd crates/trace-core
+cd crates/vexel-core
 cargo test
 cargo clippy -- -D warnings
 cargo fmt --check
@@ -49,13 +49,13 @@ npm test
 
 ## Adding a conformance fixture
 
-The conformance suite makes Trace a *format*, not "whatever the Rust code does". Adding
+The conformance suite makes Vexel a *format*, not "whatever the Rust code does". Adding
 a fixture is one of the highest-leverage contributions.
 
 1. Create `packages/conformance/fixtures/NNN-short-name/`.
 2. Add `input.svg` (or `input.fragments.json` for streaming).
 3. Run `cargo run --bin gen-fixture -- packages/conformance/fixtures/NNN-short-name` to
-   generate the canonical `output.trace`.
+   generate the canonical `output.vex`.
 4. Add a `queries.json` describing expected query results — viewBox, ids, hit-test
    points, named bboxes.
 5. Run `npm test -w packages/conformance` to verify it passes.

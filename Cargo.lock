@@ -326,24 +326,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
-name = "trace-cli"
-version = "0.1.0"
-dependencies = [
- "trace-core",
-]
-
-[[package]]
-name = "trace-core"
-version = "0.1.0"
-dependencies = [
- "byteorder",
- "crc32fast",
- "thiserror",
- "tiny-skia-path",
- "usvg",
-]
-
-[[package]]
 name = "ttf-parser"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -426,6 +408,24 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vexel-cli"
+version = "0.1.0"
+dependencies = [
+ "vexel-core",
+]
+
+[[package]]
+name = "vexel-core"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "crc32fast",
+ "thiserror",
+ "tiny-skia-path",
+ "usvg",
+]
 
 [[package]]
 name = "xmlwriter"

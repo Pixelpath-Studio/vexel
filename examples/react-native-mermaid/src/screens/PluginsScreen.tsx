@@ -1,16 +1,16 @@
 // PluginsScreen — Phase 7.
 //
 // Tests the plugin architecture by composing the diagram with built-in plugins:
-//   - TraceLegend  (overlays a tappable list of ids)
-//   - TraceTooltip (pops a label over the selected element)
+//   - VexelLegend  (overlays a tappable list of ids)
+//   - VexelTooltip (pops a label over the selected element)
 //
-// Both are TracePlugin factories that register decorators via the plugin API.
+// Both are VexelPlugin factories that register decorators via the plugin API.
 
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { TraceView } from '../trace-runtime';
-import type { TracePlugin } from '../trace-runtime';
-import { TraceLegend, TraceTooltip } from '../plugins';
+import { VexelView } from '../vexel-runtime';
+import type { VexelPlugin } from '../vexel-runtime';
+import { VexelLegend, VexelTooltip } from '../plugins';
 import { animalSvg } from '../../assets/animalSvg';
 
 export function PluginsScreen() {
@@ -18,10 +18,10 @@ export function PluginsScreen() {
   const [tooltipOn, setTooltipOn] = useState(true);
   const [legendPos, setLegendPos] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
 
-  const plugins: TracePlugin[] = useMemo(() => {
-    const ps: TracePlugin[] = [];
-    if (legendOn) ps.push(TraceLegend({ position: legendPos, maxHeight: 200 }));
-    if (tooltipOn) ps.push(TraceTooltip());
+  const plugins: VexelPlugin[] = useMemo(() => {
+    const ps: VexelPlugin[] = [];
+    if (legendOn) ps.push(VexelLegend({ position: legendPos, maxHeight: 200 }));
+    if (tooltipOn) ps.push(VexelTooltip());
     return ps;
   }, [legendOn, tooltipOn, legendPos]);
 
@@ -29,9 +29,9 @@ export function PluginsScreen() {
     <View style={styles.root}>
       <View style={styles.row}>
         <Switch value={legendOn} onValueChange={setLegendOn} />
-        <Text style={styles.swLabel}>TraceLegend</Text>
+        <Text style={styles.swLabel}>VexelLegend</Text>
         <Switch value={tooltipOn} onValueChange={setTooltipOn} style={{ marginLeft: 16 }} />
-        <Text style={styles.swLabel}>TraceTooltip</Text>
+        <Text style={styles.swLabel}>VexelTooltip</Text>
       </View>
 
       <Text style={styles.subLabel}>legend position</Text>
@@ -48,11 +48,11 @@ export function PluginsScreen() {
       </View>
 
       <View style={styles.canvas}>
-        <TraceView source={animalSvg} highlight="connected" plugins={plugins} />
+        <VexelView source={animalSvg} highlight="connected" plugins={plugins} />
       </View>
 
       <Text style={styles.hint}>
-        Plugins are TracePlugin factories. Each registers decorators that get a
+        Plugins are VexelPlugin factories. Each registers decorators that get a
         graph + selection + viewBox→screen projector. Tap a row in the legend to
         drive selection imperatively.
       </Text>

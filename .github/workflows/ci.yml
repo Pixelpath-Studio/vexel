@@ -8,7 +8,7 @@ on:
 
 jobs:
   rust:
-    name: rust (trace-core + trace-cli)
+    name: rust (vexel-core + vexel-cli)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,9 +34,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: build trace-cli
-        run: cargo build --release -p trace-cli
+      - name: build vexel-cli
+        run: cargo build --release -p vexel-cli
       - name: regenerate fixtures and compare
-        run: cargo run -q --release -p trace-core --example gen_fixtures
+        run: cargo run -q --release -p vexel-core --example gen_fixtures
       - name: run conformance suite
         run: node packages/conformance/runner/index.js

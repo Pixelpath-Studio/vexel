@@ -1,0 +1,26 @@
+[package]
+name = "vexel-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Reference Rust core for the Vexel vector graphics format."
+
+[lib]
+name = "vexel_core"
+# crate-type extended in phase 4 to ["lib", "staticlib", "cdylib"] for UniFFI/iOS/Android.
+crate-type = ["lib"]
+
+[dependencies]
+byteorder = "1.5"
+crc32fast = "1.4"
+thiserror = "1"
+usvg = { version = "0.45", default-features = false, features = ["text"] }
+tiny-skia-path = "0.11"
+
+[dev-dependencies]
+# Used by tests to keep golden-output assertions tidy.
+
+[lints]
+workspace = true

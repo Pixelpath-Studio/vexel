@@ -6,8 +6,8 @@
 
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { TraceView } from '../trace-runtime';
-import type { Easing, StreamOrder } from '../trace-runtime';
+import { VexelView } from '../vexel-runtime';
+import type { Easing, StreamOrder } from '../vexel-runtime';
 import { animalSvg } from '../../assets/animalSvg';
 
 const EASINGS: Easing[] = ['linear', 'ease-out', 'ease-in-out', 'hand-natural'];
@@ -68,7 +68,7 @@ export function StreamScreen() {
       <Text style={styles.status}>run #{runId} progress {Math.round(progress * 100)}%</Text>
 
       <View style={styles.canvas}>
-        <TraceView
+        <VexelView
           key={`stream-${runId}`}
           source={animalSvg}
           highlight="connected"

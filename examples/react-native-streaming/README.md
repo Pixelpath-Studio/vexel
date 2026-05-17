@@ -1,13 +1,13 @@
 # examples/react-native-streaming
 
-Streaming AI-whiteboard demo using `useTraceSession`. This is the source for
+Streaming AI-whiteboard demo using `useVexelSession`. This is the source for
 **Artifact B** from SPEC §15 — the live AI-drawing demo.
 
 ```tsx
-import { TraceView, useTraceSession } from '@trace/runtime';
+import { VexelView, useVexelSession } from '@pixelpath/vexel';
 
 export default function Whiteboard() {
-  const session = useTraceSession({ viewBox: [0, 0, 800, 600] });
+  const session = useVexelSession({ viewBox: [0, 0, 800, 600] });
   useEffect(() => {
     const ws = new WebSocket(process.env.EXPO_PUBLIC_TRACE_WS!);
     ws.onmessage = (e) => {
@@ -16,7 +16,7 @@ export default function Whiteboard() {
     };
     return () => ws.close();
   }, [session]);
-  return <TraceView source={session} style={{ flex: 1 }} />;
+  return <VexelView source={session} style={{ flex: 1 }} />;
 }
 ```
 

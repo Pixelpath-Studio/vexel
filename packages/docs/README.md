@@ -1,6 +1,6 @@
-# @trace/docs
+# @pixelpath/vexel-docs
 
-Source for the Trace documentation site. v1.0 wires Nextra
+Source for the Vexel documentation site. v1.0 wires Nextra
 (Next.js + MDX) and serves from `pages/`. The bulk of v1.0 documentation
 already lives in [../../SPEC.md](../../SPEC.md); this package's role is to
 publish it as a navigable site at `https://trace.dev` (TBD domain).
@@ -19,8 +19,8 @@ pages/
 ├── index.mdx                # Quick start (install + minimal example)
 ├── why.mdx                  # Why a new format; cross-platform pixel parity
 ├── api/
-│   ├── trace-view.mdx       # <TraceView /> reference
-│   ├── use-session.mdx      # useTraceSession() reference
+│   ├── trace-view.mdx       # <VexelView /> reference
+│   ├── use-session.mdx      # useVexelSession() reference
 │   └── convert.mdx          # convert / inspect
 ├── format/
 │   ├── overview.mdx         # SPEC §3 condensed

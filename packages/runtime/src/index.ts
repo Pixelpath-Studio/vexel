@@ -1,11 +1,11 @@
-// @trace/runtime — public API surface. SPEC §7.2.
+// @pixelpath/vexel — public API surface. SPEC §7.2.
 
-export { TraceView } from './TraceView';
-export { useTraceSession } from './useTraceSession';
+export { VexelView } from './VexelView';
+export { useVexelSession } from './useVexelSession';
 export { convert, inspect } from './convert';
 export type {
-  TraceSession,
-  TraceViewProps,
+  VexelSession,
+  VexelViewProps,
   FragmentAnim,
   Easing,
   ViewBox,

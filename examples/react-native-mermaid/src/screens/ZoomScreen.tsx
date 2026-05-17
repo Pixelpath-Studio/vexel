@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { TraceView } from '../trace-runtime';
+import { VexelView } from '../vexel-runtime';
 import { animalSvg } from '../../assets/animalSvg';
 
 export function ZoomScreen() {
@@ -40,7 +40,7 @@ export function ZoomScreen() {
       </Text>
 
       <View style={styles.canvas}>
-        <TraceView
+        <VexelView
           source={animalSvg}
           highlight="connected"
           zoom={{

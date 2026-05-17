@@ -8,7 +8,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, Switch, Text, View } from 'react-native';
-import { TraceView } from '../trace-runtime';
+import { VexelView } from '../vexel-runtime';
 import { animalSvg } from '../../assets/animalSvg';
 
 export function A11yScreen() {
@@ -45,7 +45,7 @@ export function A11yScreen() {
       </Text>
 
       <View style={styles.canvas}>
-        <TraceView
+        <VexelView
           key={`a11y-${streaming}-${respectRM}`}
           source={animalSvg}
           highlight="single"

@@ -1,7 +1,7 @@
 {
-  "name": "@trace/runtime",
+  "name": "@pixelpath/vexel",
   "version": "0.1.0",
-  "description": "Render .trace vector graphics natively on iOS and Android via Skia.",
+  "description": "Render .vex vector graphics natively on iOS and Android via Skia.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -27,7 +27,7 @@
     "type": "all",
     "jsSrcsDir": "src/native",
     "android": {
-      "javaPackageName": "co.trace.rn"
+      "javaPackageName": "co.vexel.rn"
     }
   },
   "peerDependencies": {

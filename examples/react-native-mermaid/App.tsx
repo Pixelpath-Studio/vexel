@@ -1,4 +1,4 @@
-// TraceView demo app — tabbed navigator across feature phases.
+// VexelView demo app — tabbed navigator across feature phases.
 //
 // Each tab demos one phase of the library's customization API. As phases land
 // they fill in fully; placeholder banners mark the ones still in flight.
@@ -42,7 +42,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="dark-content" />
-      <Text style={styles.header}>TraceView</Text>
+      <Text style={styles.header}>VexelView</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

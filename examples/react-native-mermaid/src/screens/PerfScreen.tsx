@@ -6,8 +6,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { TraceView } from '../trace-runtime';
-import type { Graph } from '../trace-runtime';
+import { VexelView } from '../vexel-runtime';
+import type { Graph } from '../vexel-runtime';
 
 const SIZES = [25, 100, 400, 1000];
 
@@ -81,7 +81,7 @@ export function PerfScreen() {
       </Text>
 
       <View style={styles.canvas}>
-        <TraceView
+        <VexelView
           key={`perf-${n}-${skipText}-${budgetOn}`}
           source={svg}
           highlight="single"

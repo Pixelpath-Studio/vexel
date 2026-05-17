@@ -1,11 +1,11 @@
-// SVG → .trace conversion entry point. Synchronous via TurboModule.
+// SVG → .vex conversion entry point. Synchronous via TurboModule.
 import NativeTrace from './native/NativeTrace';
 import type { ConvertOptions } from './types';
 import { base64ToBytes } from './internal/base64';
 
 export function convert(svg: string, opts: ConvertOptions = {}): Uint8Array {
   if (!NativeTrace) {
-    throw new Error('@trace/runtime: TurboModule RNTrace not registered. ' +
+    throw new Error('@pixelpath/vexel: TurboModule RNTrace not registered. ' +
       'Did you forget to rebuild the native app after install?');
   }
   const b64 = NativeTrace.convert(svg, opts.generator ?? null);
@@ -17,7 +17,7 @@ export function inspect(bytes: Uint8Array): {
   ids: string[];
   metadata: Record<string, string>;
 } {
-  if (!NativeTrace) throw new Error('@trace/runtime: TurboModule not registered.');
+  if (!NativeTrace) throw new Error('@pixelpath/vexel: TurboModule not registered.');
   const b64 = bytesToBase64(bytes);
   return JSON.parse(NativeTrace.inspect(b64));
 }

@@ -1,8 +1,8 @@
-# @trace/conformance
+# @pixelpath/vexel-conformance
 
-The Trace conformance suite. Each fixture is a self-contained `(input, output.trace,
+The Vexel conformance suite. Each fixture is a self-contained `(input, output.vex,
 queries.json)` triple that defines a single point of conformance. Any implementation
-of the Trace format — the reference Rust runtime today, a hypothetical web/Flutter/Qt
+of the Vexel format — the reference Rust runtime today, a hypothetical web/Flutter/Qt
 port tomorrow — can run against this suite and prove that it produces the same bytes
 and answers the same queries.
 
@@ -12,7 +12,7 @@ and answers the same queries.
 fixtures/
   001-empty/
     input.json          # canonical IR description (or input.svg for converter fixtures)
-    output.trace        # the canonical byte representation
+    output.vex        # the canonical byte representation
     queries.json        # expected results for viewBox, ids, element_count, hit-test points
   002-...
 ```
@@ -21,8 +21,8 @@ fixtures/
 
 1. Pick the next free number.
 2. Write `input.json` (or `input.svg`).
-3. Run the matching generator from `crates/trace-core/examples/` to produce
-   `output.trace`. The Rust core is the source of truth for canonical bytes.
+3. Run the matching generator from `crates/vexel-core/examples/` to produce
+   `output.vex`. The Rust core is the source of truth for canonical bytes.
 4. Write `queries.json` describing every property the suite should verify.
 
 ## Running the suite
