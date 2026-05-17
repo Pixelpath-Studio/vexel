@@ -20,7 +20,7 @@ import {
   Text as SvgText,
   TSpan,
 } from 'react-native-svg';
-import { attrs, children, firstChild, textOf } from './parseSvgGraph';
+import { attrs, children, firstChild, textOf, walk } from './parseSvgGraph';
 import type { ElementContext } from './cssRules';
 import type {
   Graph,
@@ -88,31 +88,41 @@ export interface RenderOptions {
 }
 
 export function renderDefs(svgRoot: any): React.ReactNode {
-  const defsNode = firstChild(svgRoot, 'defs');
-  if (!defsNode) return null;
-  const kids = children(defsNode);
+  // Walk the entire tree collecting every <marker>, regardless of nesting.
+  // Mermaid is wildly inconsistent here:
+  //   - flowcharts:           markers as direct children of <g> (no <defs>)
+  //   - sequence diagrams:    7 separate <defs>, one marker each
+  //   - class diagrams:       10 separate <defs> mixing markers + symbols
+  //   - state diagrams:       single <defs> with all markers
+  // Collecting them all into one <Defs> block at the top is correct because
+  // marker references (`marker-end="url(#id)"`) lookup by id globally.
+  const markers: Array<[string, any]> = [];
+  walk(svgRoot, (node, name) => {
+    if (name === 'marker') {
+      const a = attrs(node);
+      if (a?.id) markers.push([a.id, node]);
+    }
+  });
+  if (markers.length === 0) return null;
   return (
     <Defs>
-      {kids.map(([name, c], i) => {
-        if (name === 'marker') {
-          const a = normalizeAttrs(attrs(c));
-          const kids2 = children(c);
-          return (
-            <Marker key={`m-${i}`} {...a}>
-              {kids2.map(([n, kc], j) =>
-                renderShape(n, kc, 'normal', 1, `m-${i}-${n}${j}`, {
-                  colors: DEFAULT_COLORS as Required<HighlightColors>,
-                  ownerId: undefined,
-                  ownerClasses: undefined,
-                  ownerKind: 'node',
-                  customColors: undefined,
-                  colorFilter: undefined,
-                }),
-              )}
-            </Marker>
-          );
-        }
-        return null;
+      {markers.map(([id, markerNode], i) => {
+        const a = normalizeAttrs(attrs(markerNode));
+        const kids = children(markerNode);
+        return (
+          <Marker key={`m-${id}-${i}`} {...a}>
+            {kids.map(([n, kc], j) =>
+              renderShape(n, kc, 'normal', 1, `m-${id}-${n}${j}`, {
+                colors: DEFAULT_COLORS as Required<HighlightColors>,
+                ownerId: undefined,
+                ownerClasses: undefined,
+                ownerKind: 'node',
+                customColors: undefined,
+                colorFilter: undefined,
+              }),
+            )}
+          </Marker>
+        );
       })}
     </Defs>
   );

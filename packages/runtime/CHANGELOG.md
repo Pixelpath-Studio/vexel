@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.0.6 — Arrowhead markers
+
+Directed edges in Mermaid diagrams reference shared `<marker>` definitions
+via `marker-end="url(#arrowhead)"`. Vexel 0.0.5's `renderDefs` only looked
+at the first `<defs>` element, but Mermaid is wildly inconsistent about
+where it puts markers:
+
+- **flowcharts** — markers as direct children of `<g>` (no `<defs>` at all)
+- **sequence diagrams** — 7 separate `<defs>`, one marker each
+- **class diagrams** — 10 separate `<defs>` mixing markers + symbols
+- **state diagrams** — single `<defs>` with all markers
+
+Result: every directed edge rendered as a line *without* an arrowhead.
+Fixed by walking the entire SVG tree, collecting every `<marker>`
+regardless of nesting, and emitting them in a single `<Defs>` block at the
+top. Marker references resolve globally by id, so collapsing them is
+semantically identical to the original layout.
+
+Verified visible arrowheads on sequence (4 message arrows + dashed
+reply), flowchart-complex (decision-diamond branches), and class
+(inheritance triangles).
+
 ## 0.0.5 — All-Mermaid-types correctness + streaming fix
 
 End-to-end verification against real Mermaid 10.9.x output (via
