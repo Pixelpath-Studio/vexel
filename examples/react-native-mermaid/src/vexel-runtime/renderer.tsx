@@ -18,6 +18,7 @@ import {
   Polyline,
   Rect,
   Text as SvgText,
+  TSpan,
 } from 'react-native-svg';
 import { attrs, children, firstChild, textOf } from './parseSvgGraph';
 import type { ElementContext } from './cssRules';
@@ -135,11 +136,15 @@ export function renderGroup(
   const id: string | undefined = a?.id;
   const klass = a?.class ? a.class.split(/\s+/).filter(Boolean) : undefined;
   const status: RenderStatus = id ? opts.statusOf(id) : 'normal';
+  // If this group has its own id, it's an addressable element with its own
+  // reveal animation timing. Always recompute via revealOf — DON'T inherit
+  // the parent's reveal value (which would be 1 for top-level wrappers and
+  // mask streaming entirely).
   const reveal: number =
-    inherited?.reveal != null
-      ? inherited.reveal
-      : id && opts.revealOf
+    id && opts.revealOf
       ? opts.revealOf(id)
+      : inherited?.reveal != null
+      ? inherited.reveal
       : 1;
   const ownerId = id ?? inherited?.ownerId;
   const ownerClasses = klass ?? inherited?.ownerClasses;
@@ -261,7 +266,7 @@ interface ShapeRenderCtx {
   cssInherited?: Record<string, string>;
 }
 
-function renderShape(
+export function renderShape(
   name: string,
   node: any,
   groupStatus: RenderStatus,
@@ -288,11 +293,11 @@ function renderShape(
   //   5. colorFilter
   //   6. status (highlight)
   //   7. reveal (streaming)
+  const elementClasses = rawAttrs?.class
+    ? rawAttrs.class.split(/\s+/).filter(Boolean)
+    : undefined;
   let cssResolved: Record<string, any> = {};
   if (ctx.resolveStyle) {
-    const elementClasses = rawAttrs?.class
-      ? rawAttrs.class.split(/\s+/).filter(Boolean)
-      : undefined;
     const elementCtx: ElementContext = {
       tag: name,
       id: rawAttrs?.id,
@@ -361,9 +366,16 @@ function renderShape(
   // inlineStyle, and leaving it raw would override our overrides.
   const { style: _ignoredStyle, ...rawNoStyle } = raw;
 
+  // Cascade order, low → high priority (per CSS Cascade L5 / SVG 2):
+  //   1. SVG presentation attributes (rawNoStyle) — lowest, below universal
+  //   2. Author CSS rules (cssResolved) — !important already merged inside
+  //   3. Inline style="..." — high specificity author tier
+  //   4. Vexel consumer overrides (colors/filter/status/stream) — always wins
+  // This is why Mermaid's `<line class="messageLine0" stroke="none">` ends up
+  // with stroke=#212121 from `.messageLine0 { stroke:#212121 }` (CSS over attr).
   const final = {
-    ...cssResolved,
     ...rawNoStyle,
+    ...cssResolved,
     ...inlineStyle,
     ...customOverride,
     ...statusOverride,
@@ -371,14 +383,71 @@ function renderShape(
   };
 
   if (name === 'text') {
+    // Mermaid (and most generators) wraps text content in <tspan> children:
+    //   <text><tspan dy="1em" x="0">Usability Heuristics</tspan></text>
+    // We need to walk the children — direct text() goes inline, <tspan>
+    // children render as <TSpan> with their own attrs so per-span x/dy/style
+    // (used for multi-line labels) is honored.
     const txt = textOf(node);
+    const tspans = children(node)
+      .filter(([n]) => n === 'tspan')
+      .map(([, tspanNode], i) => {
+        const tspanAttrs = normalizeAttrs(attrs(tspanNode));
+        // Resolve CSS for the tspan too (inherits from the text element).
+        let tspanCss: Record<string, any> = {};
+        if (ctx.resolveStyle) {
+          const tspanCtx_attrs = attrs(tspanNode);
+          const tspanElCtx: ElementContext = {
+            tag: 'tspan',
+            id: tspanCtx_attrs?.id,
+            classes: tspanCtx_attrs?.class
+              ? tspanCtx_attrs.class.split(/\s+/).filter(Boolean)
+              : undefined,
+            attributes: tspanCtx_attrs,
+          };
+          const elementCtx: ElementContext = {
+            tag: 'text',
+            id: rawAttrs?.id,
+            classes: elementClasses,
+            attributes: rawAttrs,
+          };
+          const tspanResolved = ctx.resolveStyle(
+            tspanElCtx,
+            [...(ctx.ancestors ?? []), elementCtx],
+            mergeForChild(ctx.cssInherited ?? {}, cssResolved),
+          );
+          tspanCss = cssDeclarationsToProps(tspanResolved);
+        }
+        const tspanFinal = { ...tspanCss, ...tspanAttrs };
+        return (
+          <TSpan key={`${key}-tspan${i}`} {...tspanFinal}>
+            {textOf(tspanNode)}
+          </TSpan>
+        );
+      });
+    // If the <text> has direct text children AND tspans, both render
+    // (txt first, then each tspan in document order).
     return (
       <Comp key={key} {...final} pointerEvents="none">
-        {txt}
+        {txt || null}
+        {tspans}
       </Comp>
     );
   }
   return <Comp key={key} {...final} />;
+}
+
+/** Merge resolved props with inherited ones for downstream cascade chain. */
+function mergeForChild(
+  inherited: Record<string, string>,
+  resolved: Record<string, any>,
+): Record<string, string> {
+  const out: Record<string, string> = { ...inherited };
+  for (const [k, v] of Object.entries(resolved)) {
+    if (typeof v === 'string') out[k] = v;
+    else if (typeof v === 'number') out[k] = String(v);
+  }
+  return out;
 }
 
 // =============================================================================

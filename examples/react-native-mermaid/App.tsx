@@ -23,6 +23,7 @@ import { PluginsScreen } from './src/screens/PluginsScreen';
 import { A11yScreen } from './src/screens/A11yScreen';
 import { PerfScreen } from './src/screens/PerfScreen';
 import { CssScreen } from './src/screens/CssScreen';
+import { MermaidRealScreen } from './src/screens/MermaidRealScreen';
 
 type Tab =
   | 'Basic'
@@ -34,9 +35,10 @@ type Tab =
   | 'Plugins'
   | 'A11y'
   | 'Perf'
-  | 'CSS';
+  | 'CSS'
+  | 'Mermaid';
 
-const TABS: Tab[] = ['Basic', 'Layout', 'Highlight', 'Stream', 'Theme', 'Zoom', 'Plugins', 'A11y', 'Perf', 'CSS'];
+const TABS: Tab[] = ['Basic', 'Layout', 'Highlight', 'Stream', 'Theme', 'Zoom', 'Plugins', 'A11y', 'Perf', 'CSS', 'Mermaid'];
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('Basic');
@@ -78,6 +80,7 @@ function renderTab(tab: Tab) {
     case 'A11y':      return <A11yScreen />;
     case 'Perf':      return <PerfScreen />;
     case 'CSS':       return <CssScreen />;
+    case 'Mermaid':   return <MermaidRealScreen />;
   }
 }
 

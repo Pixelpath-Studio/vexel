@@ -24,7 +24,7 @@ import { AccessibilityInfo, View, Text } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import { attrs, buildGraph, children } from './parseSvgGraph';
 import { loadSource } from './loadSource';
-import { DEFAULT_COLORS, renderDefs, renderGroup, type ResolveStyleFn } from './renderer';
+import { DEFAULT_COLORS, renderDefs, renderGroup, renderShape, type ResolveStyleFn } from './renderer';
 import {
   resolveCascade,
   type ElementContext,
@@ -366,10 +366,11 @@ export function VexelView(props: VexelViewProps) {
 
   const orderedIds = useMemo(() => {
     if (loadState.kind !== 'ready') return [] as string[];
-    const docOrder = children(loadState.svgRoot)
-      .filter(([name]) => name === 'g')
-      .map(([, g]) => attrs(g)?.id)
-      .filter(Boolean) as string[];
+    // graph.shapes is populated by `walk()` in DOM order — the right answer
+    // regardless of how deep the `<g id="...">` lives in the tree. Mermaid
+    // wraps node groups several levels under `<svg>`, so only checking direct
+    // children misses them entirely.
+    const docOrder = Array.from(loadState.graph.shapes.keys());
     return applyStreamOrder(docOrder, streamOrder, loadState.graph);
   }, [loadState, streamOrder]);
 
@@ -611,33 +612,46 @@ export function VexelView(props: VexelViewProps) {
               onPress={handleClearBackground}
             />
             {children(svgRoot)
-              .filter(([name]) => name === 'g')
-              .map(([, g], i) =>
-                renderGroup(
-                  g,
-                  {
-                    graph,
-                    selectedId: lastTapped,
-                    onPress: handlePress,
-                    onPressIn: handlePressIn,
-                    onPressOut: handlePressOut,
-                    colors: palette,
-                    customColors: colors,
-                    colorFilter: props.colorFilter,
-                    statusOf,
-                    revealOf,
-                    skipText: rendering?.skipText,
-                    interactiveBudget: rendering?.interactiveBudget,
-                    resolveStyle,
-                  },
-                  `top-${i}`,
-                  {
+              .filter(([name]) => name !== 'style' && name !== 'defs' && name !== 'title' && name !== 'desc')
+              .map(([name, child], i) => {
+                const opts = {
+                  graph,
+                  selectedId: lastTapped,
+                  onPress: handlePress,
+                  onPressIn: handlePressIn,
+                  onPressOut: handlePressOut,
+                  colors: palette,
+                  customColors: colors,
+                  colorFilter: props.colorFilter,
+                  statusOf,
+                  revealOf,
+                  skipText: rendering?.skipText,
+                  interactiveBudget: rendering?.interactiveBudget,
+                  resolveStyle,
+                };
+                if (name === 'g') {
+                  return renderGroup(child, opts, `top-${i}`, {
                     reveal: 1,
                     ancestors: [svgRootElCtx],
                     cssInherited: svgRootInherited,
-                  },
-                ),
-              )}
+                  });
+                }
+                // Mermaid (and other generators) sometimes emit renderable
+                // shapes (<text>, <line>, <path>, <rect>, etc.) as direct
+                // children of <svg> with no wrapping <g>. They're real, and
+                // must render — skipping them was a v0.0.3 regression.
+                return renderShape(name, child, 'normal', 1, `top-${i}`, {
+                  colors: palette,
+                  ownerId: undefined,
+                  ownerClasses: undefined,
+                  ownerKind: 'node',
+                  customColors: colors,
+                  colorFilter: props.colorFilter,
+                  resolveStyle,
+                  ancestors: [svgRootElCtx],
+                  cssInherited: svgRootInherited,
+                });
+              })}
           </Svg>
         </ZoomLayer>
       </View>
