@@ -103,7 +103,15 @@ export interface RenderOptions {
   edgeStyleOf?: EdgeStyleResolverFn;
 }
 
-export function renderDefs(svgRoot: any, syntheticMarkers?: MarkerSpec[]): React.ReactNode {
+export function renderDefs(
+  svgRoot: any,
+  syntheticMarkers?: MarkerSpec[],
+  cssCtx?: {
+    resolveStyle?: ResolveStyleFn;
+    svgRootElCtx?: ElementContext;
+    svgRootInherited?: Record<string, string>;
+  },
+): React.ReactNode {
   // Walk the entire tree collecting every <marker>, regardless of nesting.
   // Mermaid is wildly inconsistent here:
   //   - flowcharts:           markers as direct children of <g> (no <defs>)
@@ -125,7 +133,22 @@ export function renderDefs(svgRoot: any, syntheticMarkers?: MarkerSpec[]): React
     <Defs>
       {markers.map(([id, markerNode], i) => {
         const a = normalizeAttrs(attrs(markerNode));
+        const rawMarkerAttrs = attrs(markerNode);
         const kids = children(markerNode);
+        // Build the marker's own element context so its children's CSS
+        // resolution sees the right ancestor chain. CSS rules like
+        // `#diagram .marker path { fill: red }` rely on this chain.
+        const markerElCtx: ElementContext = {
+          tag: 'marker',
+          id: rawMarkerAttrs?.id,
+          classes: rawMarkerAttrs?.class
+            ? rawMarkerAttrs.class.split(/\s+/).filter(Boolean)
+            : undefined,
+          attributes: rawMarkerAttrs,
+        };
+        const markerAncestors = cssCtx?.svgRootElCtx
+          ? [cssCtx.svgRootElCtx, markerElCtx]
+          : [markerElCtx];
         return (
           <Marker key={`m-${id}-${i}`} {...a}>
             {kids.map(([n, kc], j) =>
@@ -136,6 +159,12 @@ export function renderDefs(svgRoot: any, syntheticMarkers?: MarkerSpec[]): React
                 ownerKind: 'node',
                 customColors: undefined,
                 colorFilter: undefined,
+                // Pass the cascade context so `.marker path` selectors actually
+                // match — pre-v0.0.9 marker contents rendered with no CSS,
+                // so any author rule trying to color arrowheads silently failed.
+                resolveStyle: cssCtx?.resolveStyle,
+                ancestors: markerAncestors,
+                cssInherited: cssCtx?.svgRootInherited,
               }),
             )}
           </Marker>

@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.0.9 — CSS resolution for marker contents
+
+Before this release, `<marker>` children were rendered with no CSS
+cascade context — so author rules like
+
+```css
+#diagram .marker path { fill: var(--my-line); }
+```
+
+silently failed to color arrowheads. The path inside the marker rendered
+with the SVG default fill (black). Users would write a perfectly
+reasonable rule, see no effect, and have no way to debug it.
+
+Fix: `renderDefs` now accepts an optional `cssCtx` ({ resolveStyle,
+svgRootElCtx, svgRootInherited }) and threads it into each marker
+child's `renderShape` call. The marker's own element context is pushed
+onto the ancestor stack, so the chain `[svg, marker, path]` is what the
+matcher sees — selectors like `#diagram .marker path` and
+`.arrowMarkerPath` resolve correctly.
+
+This matters most for dark-mode theming: a consumer that injects
+`@media (prefers-color-scheme: dark) { #diagram .marker path { fill:
+#bfbfbf } }` now actually gets light-gray arrowheads on dark background.
+
+The CSS cascade order rules from 0.0.5 still apply — author CSS wins
+over the marker path's presentation attrs, but inline `style="..."`
+on the marker path still wins over CSS.
+
 ## 0.0.8 — CSS-driven arrow customization
 
 `edges` (v0.0.7) is the imperative path; this release adds the

@@ -690,7 +690,11 @@ export function VexelView(props: VexelViewProps) {
           }}
         >
           <Svg viewBox={graph.viewBox} width={svgWidth} height={svgHeight} preserveAspectRatio={par}>
-            {renderDefs(svgRoot, markerSpecs)}
+            {renderDefs(svgRoot, markerSpecs, {
+              resolveStyle,
+              svgRootElCtx,
+              svgRootInherited,
+            })}
             <Rect
               x={graph.viewBoxRect.x}
               y={graph.viewBoxRect.y}
