@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 300" width="360" height="300">
+  <g class="edgePaths">
+    <path id="L_A_B_0" d="M 180 70 L 180 110" stroke="#1f2937" stroke-width="2" fill="none"/>
+    <path id="L_B_C_0" d="M 150 175 L 80 220"  stroke="#1f2937" stroke-width="2" fill="none"/>
+    <path id="L_B_D_0" d="M 210 175 L 280 220" stroke="#1f2937" stroke-width="2" fill="none"/>
+  </g>
+  <g class="nodes">
+    <g id="flowchart-A-1" transform="translate(130 20)">
+      <rect width="100" height="50" rx="6" ry="6" fill="#fff" stroke="#1f2937" stroke-width="2"/>
+      <text x="50" y="29" font-size="14" text-anchor="middle" fill="#111827">Start</text>
+    </g>
+    <g id="flowchart-B-2" transform="translate(130 110)">
+      <polygon points="50,0 100,35 50,70 0,35" fill="#fff" stroke="#1f2937" stroke-width="2"/>
+      <text x="50" y="39" font-size="14" text-anchor="middle" fill="#111827">Decide</text>
+    </g>
+    <g id="flowchart-C-3" transform="translate(30 220)">
+      <rect width="100" height="50" rx="6" ry="6" fill="#fff" stroke="#1f2937" stroke-width="2"/>
+      <text x="50" y="29" font-size="14" text-anchor="middle" fill="#111827">Ship</text>
+    </g>
+    <g id="flowchart-D-4" transform="translate(230 220)">
+      <rect width="100" height="50" rx="6" ry="6" fill="#fff" stroke="#1f2937" stroke-width="2"/>
+      <text x="50" y="29" font-size="14" text-anchor="middle" fill="#111827">Wait</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 640" width="720" height="640" font-family="-apple-system, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="inherit" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    </marker>
+  </defs>
+
+  <g id="note-title" class="note">
+    <rect x="250" y="10" width="220" height="40" rx="2" ry="2" fill="#fff8c5" stroke="#d4a72c" stroke-width="1.5"/>
+    <text x="360" y="34" font-size="14" fill="#1f2937" text-anchor="middle">From Duck till Zebra</text>
+  </g>
+
+  <g id="classGroup-Animal" class="classGroup">
+    <rect x="260" y="80" width="200" height="150" rx="2" ry="2" fill="#ECECFF" stroke="#9370DB" stroke-width="1.5"/>
+    <text x="360" y="102" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="middle">Animal</text>
+    <line x1="260" y1="115" x2="460" y2="115" stroke="#9370DB" stroke-width="1"/>
+    <text x="272" y="134" font-size="13" fill="#1f2937">+int age</text>
+    <text x="272" y="153" font-size="13" fill="#1f2937">+String gender</text>
+    <line x1="260" y1="168" x2="460" y2="168" stroke="#9370DB" stroke-width="1"/>
+    <text x="272" y="187" font-size="13" fill="#1f2937">+isMammal()</text>
+    <text x="272" y="206" font-size="13" fill="#1f2937">+mate()</text>
+  </g>
+
+  <g id="classGroup-Duck" class="classGroup">
+    <rect x="40" y="340" width="200" height="160" rx="2" ry="2" fill="#ECECFF" stroke="#9370DB" stroke-width="1.5"/>
+    <text x="140" y="362" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="middle">Duck</text>
+    <line x1="40" y1="375" x2="240" y2="375" stroke="#9370DB" stroke-width="1"/>
+    <text x="52" y="394" font-size="13" fill="#1f2937">+String beakColor</text>
+    <line x1="40" y1="409" x2="240" y2="409" stroke="#9370DB" stroke-width="1"/>
+    <text x="52" y="428" font-size="13" fill="#1f2937">+swim()</text>
+    <text x="52" y="447" font-size="13" fill="#1f2937">+quack()</text>
+  </g>
+
+  <g id="classGroup-Fish" class="classGroup">
+    <rect x="260" y="340" width="200" height="140" rx="2" ry="2" fill="#ECECFF" stroke="#9370DB" stroke-width="1.5"/>
+    <text x="360" y="362" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="middle">Fish</text>
+    <line x1="260" y1="375" x2="460" y2="375" stroke="#9370DB" stroke-width="1"/>
+    <text x="272" y="394" font-size="13" fill="#1f2937">-int sizeInFeet</text>
+    <line x1="260" y1="409" x2="460" y2="409" stroke="#9370DB" stroke-width="1"/>
+    <text x="272" y="428" font-size="13" fill="#1f2937">-canEat()</text>
+  </g>
+
+  <g id="classGroup-Zebra" class="classGroup">
+    <rect x="480" y="340" width="200" height="140" rx="2" ry="2" fill="#ECECFF" stroke="#9370DB" stroke-width="1.5"/>
+    <text x="580" y="362" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="middle">Zebra</text>
+    <line x1="480" y1="375" x2="680" y2="375" stroke="#9370DB" stroke-width="1"/>
+    <text x="492" y="394" font-size="13" fill="#1f2937">+bool is_wild</text>
+    <line x1="480" y1="409" x2="680" y2="409" stroke="#9370DB" stroke-width="1"/>
+    <text x="492" y="428" font-size="13" fill="#1f2937">+run()</text>
+  </g>
+
+  <g id="edge-Duck-Animal" class="edge">
+    <path d="M 140 340 L 140 280 L 348 280 L 348 230" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#inherit)"/>
+  </g>
+  <g id="edge-Fish-Animal" class="edge">
+    <path d="M 360 340 L 360 230" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#inherit)"/>
+  </g>
+  <g id="edge-Zebra-Animal" class="edge">
+    <path d="M 580 340 L 580 280 L 372 280 L 372 230" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#inherit)"/>
+  </g>
+
+  <g id="note-Duck" class="note">
+    <rect x="20" y="530" width="240" height="100" rx="2" ry="2" fill="#fff8c5" stroke="#d4a72c" stroke-width="1.5"/>
+    <text x="32" y="552" font-size="13" fill="#1f2937">can fly</text>
+    <text x="32" y="572" font-size="13" fill="#1f2937">can swim</text>
+    <text x="32" y="592" font-size="13" fill="#1f2937">can dive</text>
+    <text x="32" y="612" font-size="13" fill="#1f2937">can help in debugging</text>
+    <path d="M 140 500 L 140 530" fill="none" stroke="#d4a72c" stroke-width="1" stroke-dasharray="4 3"/>
+  </g>
+</svg>

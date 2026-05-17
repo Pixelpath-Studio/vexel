@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Trace Mermaid Demo",
+    "slug": "trace-mermaid-demo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "co.trace.mermaiddemo"
+    },
+    "android": {
+      "package": "co.trace.mermaiddemo"
+    }
+  }
+}
