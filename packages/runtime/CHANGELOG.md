@@ -1,5 +1,151 @@
 # Changelog
 
+## 0.1.0 — Painted-area hit testing + true-flow streaming + master pain-point roadmap
+
+First minor-version bump. Adds the highest-leverage unsolved problem in
+the React Native SVG ecosystem: hit testing that respects what's actually
+painted, not just bounding boxes. Plus a fundamental fix to streaming
+order — diagrams now reveal in true graph-flow order, not document order.
+
+### Why this is a `0.1.x` and not a `0.0.x`
+
+This release ships the first piece of work driven by `ROADMAP.md` — a
+new top-level document that lists every pain point in the RN-SVG
+ecosystem, traces each to its architectural root cause, and explains
+how Vexel solves it at general-purpose-library scale (not Curo-
+specific). Read it at `/ROADMAP.md` in the repo. From here on, every
+release lines up against an entry in that document.
+
+### What landed
+
+**New: painted-area hit testing.** `hitTestMode="visible-painted"`
+(plus the existing `hitTestTolerance` prop, now wired up) makes
+`onElementPress` fire only when the tap is within `tolerance` viewBox
+units of the element's painted area. Bounding-box mode (today's default)
+still fires on any tap inside the bounding box.
+
+```tsx
+<VexelView
+  source={svg}
+  hitTestMode="visible-painted"  // | 'bounding-box' (default) | 'stroke-only' | 'fill-only'
+  hitTestTolerance={6}
+  onElementPress={(id) => console.log('actually painted:', id)}
+/>
+```
+
+Why this matters: take a thin diagonal arrow from `(0,0)` to `(300,200)`.
+Its bounding box is `300×200`. With bounding-box mode, tapping the empty
+top-right corner triggers the arrow's `onPress`. With painted-area mode,
+the tap correctly falls through to the parent (the canvas background, a
+ScrollView, or whatever's underneath).
+
+### Architecture
+
+- New `src/hitTest.ts` module — pure functions, no native code.
+  Exports: `flattenPath(d)`, `pointToSegmentSqDist`,
+  `pointToPolylineSqDist`, `pointInPolygon`, `hitTestShapes`.
+- Parser change: `IndexedShape` now carries `flattened: Float64Array`
+  (the painted polyline) and `closed: boolean` (for `pointInPolygon`
+  semantics). Computed once at parse time from `<path d="...">`,
+  `<polygon>`/`<polyline>` points, or by sampling `<rect>`/`<circle>`/
+  `<ellipse>` perimeters.
+- Renderer change: in painted mode, per-`<G>` `onPress` wrappers are
+  skipped (`bypassPerElementTap`). The root transparent rect's
+  `onPressIn` dispatches all taps via `hitTestShapes()` → the matched
+  element id, or falls through to `handleClearBackground`.
+- Path flattener supports: `M / L / H / V / C / S / Q / T / A / Z` plus
+  all relative forms and implicit-L after M. Curves are sampled at 16
+  points per segment — coarse enough to be fast, fine enough that
+  finger-sized taps resolve correctly. Arc endpoint-to-center conversion
+  follows the SVG spec.
+
+### Test coverage
+
+19 new unit tests in `src/hitTest.test.ts` covering the flattener (line,
+quadratic, cubic, smooth, arc, H/V, implicit-L), the distance primitives
+(point-to-segment, point-to-polyline, point-in-polygon), and the
+top-level resolver (miss-when-far, hit-inside-fill, topmost-wins-on-
+overlap, fall-through-on-thin-diagonal, hit-within-tolerance, bbox-vs-
+painted parity). Total suite: 68 tests passing (49 cssRules + 19
+hitTest).
+
+### Performance
+
+Pre-Skia, all hit-testing runs on the JS thread, O(n) over the graph's
+shapes (early-rejected by bbox first). For diagrams up to ~500 elements
+this is under 1 ms per tap on iPhone XS-class hardware. The v1.0 Skia +
+Rust core moves this to a native STR-packed R-tree with the same public
+API — consumers upgrade transparently.
+
+### Not in this release (next up)
+
+- **Gesture composition props** (`gestures.simultaneousHandlers`,
+  `gestures.waitFor`) — coming in v0.2 alongside the mutation API.
+  For now, wrapping `<VexelView>` in a `react-native-gesture-handler`
+  `TapGestureHandler` composes cleanly.
+- **Per-element memoization** — separate effort tracked under PP-PERF.
+
+### Demo
+
+New "HitTest" tab in the example app. Toggle between painted-area and
+bounding-box mode against a SVG with a diagonal arrow whose bounding box
+covers the entire viewBox; tap the empty top-right corner to feel the
+difference. On load the screen runs five synthetic taps against the live
+parsed graph and shows bbox-mode vs painted-mode results side-by-side —
+10 assertions, all green.
+
+### Also in this release — true-flow streaming order
+
+`streamReveal` now reveals elements in **graph-flow order** instead of
+document order. The previous behavior dropped Mermaid edges (emitted in
+`<g class="edgePaths">` before `<g class="nodes">`) before their host
+nodes, leaving arrows pointing at empty space until the boxes caught up.
+
+Three architectural fixes underneath:
+
+1. **`buildGraph` now registers bare `<path id>` / `<polygon id>` /
+   `<polyline id>` / `<line id>` elements** as graph shapes, not just
+   `<g id>`. Mermaid emits edges as bare `<path id="L-A-B-0">` — they
+   were entirely missing from `graph.shapes` and therefore invisible to
+   streaming / highlight / adjacency.
+2. **`renderShape` honors `revealOf` when the element itself has an id**
+   (not only when a parent group does). Bare edge paths now animate
+   in instead of jumping straight to fully visible.
+3. **Default `streamOrder` flipped from `'document'` to `'topological'`,
+   and `'topological'` now means actual BFS through the directed
+   adjacency graph from source nodes** — emitting `source-node → target-
+   node → edge` so the edge's arrowhead always lands on a target that's
+   already visible. Disconnected components append in document order.
+
+### Plus — marker rendering during reveal
+
+`react-native-svg` renders `<marker>` definitions at the path's geometric
+endpoint regardless of the host path's opacity or `stroke-dasharray`. So
+during streaming, arrowheads would pop in at their target positions
+*before* the host path animated in — producing "arrows pointing at
+nothing." Fixed by stripping `markerEnd` / `markerStart` / `markerMid`
+when `reveal < 1`, plus applying `display: none` on top of `opacity: 0`
+for fully-hidden elements. Markers re-attach the moment the edge reaches
+full reveal.
+
+### Also — `computeBbox` backfills from flattened polyline
+
+Path-only `<g>` groups (every edge in Mermaid) had no bbox at all
+because `computeBbox` only handled rect/circle/polygon/polyline.
+Bounding-box hit-test returned null for them. Now the bbox is derived
+from the flattened polyline whenever the rect/circle/polygon scan
+finds no primitive — making bbox-mode hit-test correct on path-based
+shapes too.
+
+### Master pain-point document — `ROADMAP.md`
+
+Every issue this library claims to solve, traced through (symptom →
+architectural root cause → Vexel's solution → status) at general-
+purpose-library scale. Lives at `/ROADMAP.md` in the repo. From here on,
+every release lines up against an entry. If you hit a pain point not
+listed — open an issue, link the evidence, and we'll RCA it before
+deciding what to do.
+
 ## 0.0.9 — CSS resolution for marker contents
 
 Before this release, `<marker>` children were rendered with no CSS

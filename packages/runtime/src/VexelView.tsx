@@ -26,6 +26,7 @@ import { attrs, buildGraph, children } from './parseSvgGraph';
 import { loadSource } from './loadSource';
 import { DEFAULT_COLORS, renderDefs, renderGroup, renderShape, type ResolveStyleFn } from './renderer';
 import { collectMarkerSpecsFromCss, makeMarkerId, type MarkerSpec } from './arrowMarkers';
+import { hitTestShapes } from './hitTest';
 import type { EdgeStyle, EdgesConfig } from './types';
 import {
   resolveCascade,
@@ -75,6 +76,8 @@ export function VexelView(props: VexelViewProps) {
     selectionMode = 'single',
     gestures = { tap: true, longPress: false, hover: false },
     longPressDelayMs = 500,
+    hitTestMode = 'bounding-box',
+    hitTestTolerance = 6,
     onElementPress,
     onElementLongPress,
     onSelectionChange,
@@ -84,7 +87,11 @@ export function VexelView(props: VexelViewProps) {
     streamPauseMs = 80,
     streamEasing = 'hand-natural',
     streamSpeed = 1,
-    streamOrder = 'document',
+    // Default to `topological` so nodes draw before edges. With `document`
+    // (DOM order), Mermaid emits its <g class="edgePaths"> block before
+    // <g class="nodes">, which makes every arrow appear pointing at empty
+    // space until its endpoints catch up. Topological is what users expect.
+    streamOrder = 'topological',
     loop = false,
     onStreamProgress,
     onStreamComplete,
@@ -701,7 +708,22 @@ export function VexelView(props: VexelViewProps) {
               width={graph.viewBoxRect.w}
               height={graph.viewBoxRect.h}
               fill="transparent"
-              onPress={handleClearBackground}
+              onPress={hitTestMode === 'bounding-box' ? handleClearBackground : undefined}
+              onPressIn={
+                // Painted-area mode: per-G onPress no longer fires (we let
+                // the root rect intercept). Resolve the painted hit ourselves
+                // and dispatch. locationX/Y on the background rect arrive in
+                // viewBox-space because the rect spans the entire viewBox.
+                hitTestMode !== 'bounding-box'
+                  ? (e: any) => {
+                      const x = e.nativeEvent.locationX + graph.viewBoxRect.x;
+                      const y = e.nativeEvent.locationY + graph.viewBoxRect.y;
+                      const hit = hitTestShapes([x, y], graph.shapes, hitTestMode, hitTestTolerance);
+                      if (hit) handlePress(hit.id);
+                      else handleClearBackground();
+                    }
+                  : undefined
+              }
             />
             {children(svgRoot)
               .filter(([name]) => name !== 'style' && name !== 'defs' && name !== 'title' && name !== 'desc')
@@ -721,6 +743,10 @@ export function VexelView(props: VexelViewProps) {
                   interactiveBudget: rendering?.interactiveBudget,
                   resolveStyle,
                   edgeStyleOf,
+                  // In painted-area mode the root rect dispatches taps via
+                  // hitTestShapes(), so per-G onPress wrappers would double-
+                  // fire. Skip them.
+                  bypassPerElementTap: hitTestMode !== 'bounding-box',
                 };
                 if (name === 'g') {
                   return renderGroup(child, opts, `top-${i}`, {
@@ -862,16 +888,118 @@ function applyStreamOrder(docOrder: string[], order: StreamOrder, graph: Graph):
     }
     return a;
   }
-  const nodes: string[] = [];
-  const edges: string[] = [];
-  const notes: string[] = [];
+  // 'topological' = true flow order: BFS from source nodes through the
+  // directed adjacency graph, interleaving each node with its outgoing
+  // edges and their targets. This produces
+  //   Start → arrow → Decision → arrow → Process A → … → End → Cleanup
+  // — what a human drawing the diagram on a whiteboard would naturally do.
+  return flowOrder(docOrder, graph);
+}
+
+/**
+ * BFS through the directed adjacency graph.
+ *
+ * Step-by-step:
+ *   1. Build a `node → [{ edge, target }]` outgoing map. Edge direction
+ *      comes from `adj.get(edgeId).nodes = [src, dst]` populated by
+ *      deriveAdjacency() (which reads it from the id pattern L-A-B-0).
+ *   2. Find source nodes = nodes with no incoming edge. If a graph has
+ *      no clear source (every node has an incoming edge, e.g. a pure
+ *      cycle), fall back to the first node in document order.
+ *   3. BFS: queue starts with sources. Pop a node, emit it, emit each
+ *      outgoing (edge, target) pair, enqueue the target. Already-visited
+ *      ids are skipped.
+ *   4. Any remaining un-visited ids (disconnected nodes, orphan edges,
+ *      notes) get appended in document order so they still animate in.
+ */
+function flowOrder(docOrder: string[], graph: Graph): string[] {
+  const outgoing = new Map<string, Array<{ edgeId: string; targetId: string }>>();
+  const hasIncoming = new Set<string>();
+
   for (const id of docOrder) {
-    const k = graph.shapes.get(id)?.kind;
-    if (k === 'edge') edges.push(id);
-    else if (k === 'note') notes.push(id);
-    else nodes.push(id);
+    const shape = graph.shapes.get(id);
+    if (shape?.kind !== 'edge') continue;
+    const adj = graph.adjacency.get(id);
+    if (!adj || adj.nodes.length !== 2) continue;
+    const [srcId, dstId] = adj.nodes;
+    const list = outgoing.get(srcId) ?? [];
+    list.push({ edgeId: id, targetId: dstId });
+    outgoing.set(srcId, list);
+    hasIncoming.add(dstId);
   }
-  return [...nodes, ...edges, ...notes];
+
+  // Source nodes — preferring document order so a flowchart's "first"
+  // node (Start in Mermaid output) wins ties.
+  const sources: string[] = [];
+  for (const id of docOrder) {
+    const shape = graph.shapes.get(id);
+    if (!shape || shape.kind === 'edge' || shape.kind === 'note') continue;
+    if (!hasIncoming.has(id)) sources.push(id);
+  }
+  // If everything has incoming (cyclic graph), fall back to first non-edge.
+  if (sources.length === 0) {
+    for (const id of docOrder) {
+      const shape = graph.shapes.get(id);
+      if (shape && shape.kind !== 'edge' && shape.kind !== 'note') {
+        sources.push(id);
+        break;
+      }
+    }
+  }
+
+  // Emit ordering inside the BFS is critical for streaming. The natural
+  // reading order is `source-node → target-node → edge`. Why not the
+  // other way (source → edge → target)?
+  //
+  //   - Edges in Mermaid carry a marker (the arrowhead) at the path's
+  //     geometric endpoint. That endpoint is INSIDE the target node.
+  //     If the edge animates in before the target exists, the marker
+  //     appears floating in space at the target's intended position —
+  //     "arrow pointing at nothing."
+  //   - Emitting target first means by the time the edge fades in,
+  //     both endpoints exist and the marker lands on the visible target.
+  //
+  // We track `emitted` (in the output list) separately from `expanded`
+  // (BFS frontier processed) so emitting a target inline doesn't prevent
+  // its outgoing edges from being followed later.
+  const emitted = new Set<string>();
+  const expanded = new Set<string>();
+  const out: string[] = [];
+  const queue: string[] = [...sources];
+
+  while (queue.length) {
+    const id = queue.shift()!;
+    if (expanded.has(id)) continue;
+    expanded.add(id);
+    if (!emitted.has(id)) {
+      emitted.add(id);
+      out.push(id);
+    }
+    for (const { edgeId, targetId } of outgoing.get(id) ?? []) {
+      // 1. Target emits BEFORE the edge so the arrowhead has a target.
+      if (!emitted.has(targetId)) {
+        emitted.add(targetId);
+        out.push(targetId);
+      }
+      // 2. Edge emits after — both endpoints now visible.
+      if (!emitted.has(edgeId)) {
+        emitted.add(edgeId);
+        out.push(edgeId);
+      }
+      // 3. Queue target for expansion of its own outgoing edges.
+      if (!expanded.has(targetId)) queue.push(targetId);
+    }
+  }
+
+  // Append anything the BFS didn't reach (disconnected components,
+  // notes, orphan edges) in document order.
+  for (const id of docOrder) {
+    if (!emitted.has(id)) {
+      emitted.add(id);
+      out.push(id);
+    }
+  }
+  return out;
 }
 
 function applyEasing(kind: Easing, t: number): number {

@@ -356,6 +356,20 @@ export interface IndexedShape {
   bbox?: { minX: number; minY: number; maxX: number; maxY: number };
   endpoints?: { start: [number, number]; end: [number, number] };
   classes?: string[];
+  /**
+   * Flattened polyline (x0,y0,x1,y1,…) of the shape's painted geometry.
+   * Computed at parse time from path `d`, polygon/polyline points, or by
+   * sampling rect/circle/ellipse perimeters. Used for painted-area
+   * hit-testing (see hitTest.ts). Undefined for shapes without geometry
+   * (e.g. <text>, <image>).
+   */
+  flattened?: Float64Array;
+  /**
+   * True when the shape is a closed region (rect, circle, ellipse,
+   * polygon, or a path ending in Z). False for open polylines / paths.
+   * Hit-tests use this to decide whether `pointInPolygon` is meaningful.
+   */
+  closed?: boolean;
 }
 
 export interface Graph {

@@ -25,6 +25,7 @@ import { PerfScreen } from './src/screens/PerfScreen';
 import { CssScreen } from './src/screens/CssScreen';
 import { MermaidRealScreen } from './src/screens/MermaidRealScreen';
 import { EdgeStyleScreen } from './src/screens/EdgeStyleScreen';
+import { HitTestScreen } from './src/screens/HitTestScreen';
 
 type Tab =
   | 'Basic'
@@ -38,9 +39,10 @@ type Tab =
   | 'Perf'
   | 'CSS'
   | 'Mermaid'
-  | 'Edges';
+  | 'Edges'
+  | 'HitTest';
 
-const TABS: Tab[] = ['Basic', 'Layout', 'Highlight', 'Stream', 'Theme', 'Zoom', 'Plugins', 'A11y', 'Perf', 'CSS', 'Mermaid', 'Edges'];
+const TABS: Tab[] = ['Basic', 'Layout', 'Highlight', 'Stream', 'Theme', 'Zoom', 'Plugins', 'A11y', 'Perf', 'CSS', 'Mermaid', 'Edges', 'HitTest'];
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('Basic');
@@ -84,6 +86,7 @@ function renderTab(tab: Tab) {
     case 'CSS':       return <CssScreen />;
     case 'Mermaid':   return <MermaidRealScreen />;
     case 'Edges':     return <EdgeStyleScreen />;
+    case 'HitTest':   return <HitTestScreen />;
   }
 }
 

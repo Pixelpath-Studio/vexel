@@ -101,6 +101,12 @@ export interface RenderOptions {
   resolveStyle?: ResolveStyleFn;
   /** Per-element edge styling resolver — overrides line attrs + arrows. */
   edgeStyleOf?: EdgeStyleResolverFn;
+  /**
+   * When true, the per-`<G>` `onPress` wrapper is omitted. The consumer
+   * (VexelView in painted-area mode) handles taps via root-level dispatch
+   * with `hitTestShapes`, so per-G handlers would double-fire.
+   */
+  bypassPerElementTap?: boolean;
 }
 
 export function renderDefs(
@@ -270,7 +276,17 @@ export function renderGroup(
         cssInherited: nextCssInherited,
       });
     }
-    return renderShape(name, child, status, reveal, `${key}-${name}${i}`, {
+    // If the leaf shape itself has an id, recompute reveal for it — bare
+    // <path id="L-A-B-0"> edges in Mermaid live without a <g> wrapper and
+    // would otherwise inherit the parent group's reveal (typically 1, so
+    // they'd render fully from frame 0 while their endpoints animate in).
+    const childAttrs = attrs(child);
+    const childId = childAttrs?.id;
+    const childReveal: number =
+      childId && opts.revealOf
+        ? opts.revealOf(childId)
+        : reveal;
+    return renderShape(name, child, status, childReveal, `${key}-${name}${i}`, {
       colors: opts.colors,
       ownerId,
       ownerClasses,
@@ -299,7 +315,7 @@ export function renderGroup(
   // is filtered out.
   const groupAttrs = groupAttrsForG(a);
 
-  if (id && !overBudget) {
+  if (id && !overBudget && !opts.bypassPerElementTap) {
     return (
       <G
         key={key}
@@ -707,13 +723,29 @@ function overrideForStatus(
 
 function revealOverrideFor(name: string, reveal: number): Record<string, any> {
   if (reveal >= 1) return {};
-  if (reveal <= 0) return { opacity: 0 };
-  if (name === 'text') return { opacity: reveal };
-  const dashLen = 10000;
+  if (reveal <= 0) {
+    // Fully hidden: both opacity AND display:none, plus strip marker refs.
+    // display:none alone disables painting entirely (markers included),
+    // which is what we need — react-native-svg does NOT propagate the
+    // host element's opacity to the marker definition it draws separately.
+    return {
+      opacity: 0,
+      display: 'none',
+      markerEnd: 'none',
+      markerStart: 'none',
+      markerMid: 'none',
+    };
+  }
+  // Partial reveal: fade in via opacity, but ALSO strip the marker
+  // references. Otherwise the arrowhead pops to full visibility at the
+  // path's geometric endpoint while the path itself is still mid-fade —
+  // producing "arrows pointing at nothing" exactly when the user is
+  // trying to perceive flow.
   return {
-    strokeDasharray: dashLen,
-    strokeDashoffset: dashLen * (1 - reveal),
-    fillOpacity: reveal,
+    opacity: reveal,
+    markerEnd: 'none',
+    markerStart: 'none',
+    markerMid: 'none',
   };
 }
 
