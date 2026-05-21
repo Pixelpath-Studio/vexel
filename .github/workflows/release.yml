@@ -1,80 +1,61 @@
 name: release
 
-# Builds Rust binaries for every supported target, packages the iOS
-# XCFramework and Android AAR, publishes to npm + CocoaPods + Maven Central.
-# Triggered by pushing a v* tag.
+# Vexel is in v0.x — a pure-JS preview built on top of `react-native-svg`.
+# The Rust core (`crates/vexel-core`), iOS XCFramework, and Android AAR
+# pipelines are scaffolded for v1.0 (the Skia + Rust hit-test swap) but
+# are NOT part of v0.x releases. See ROADMAP.md "v1.0 — Skia swap".
+#
+# This workflow currently only validates the JS runtime on a tag push:
+#   1. install deps + type-check
+#   2. run the JS unit tests
+#   3. (optional) publish @pixelpath/vexel to npm if NPM_TOKEN is set
+#
+# npm publish has historically been a manual step (`npm publish --otp=...`)
+# because the maintainer's account uses 2FA. The CI publish path stays
+# disabled-by-default to avoid duplicate-publish errors; flip `do_publish`
+# to `true` only after configuring an automation token + provenance.
+#
+# When v1.0 lands, re-enable the rust-binaries → ios-xcframework /
+# android-aar / publish-cocoapods / publish-maven jobs below.
 
 on:
   push:
     tags: ['v*']
 
 jobs:
-  rust-binaries:
-    name: rust binaries (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - { os: macos-14,   target: aarch64-apple-ios }
-          - { os: macos-14,   target: aarch64-apple-ios-sim }
-          - { os: macos-14,   target: x86_64-apple-ios }
-          - { os: ubuntu-latest, target: aarch64-linux-android }
-          - { os: ubuntu-latest, target: armv7-linux-androideabi }
-          - { os: ubuntu-latest, target: x86_64-linux-android }
-          - { os: ubuntu-latest, target: i686-linux-android }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-      - run: cargo build --release --target ${{ matrix.target }} -p vexel-core
-      - uses: actions/upload-artifact@v4
-        with:
-          name: vexel-core-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/libvexel_core.*
-
-  ios-xcframework:
-    needs: rust-binaries
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: vexel-core-aarch64-apple-ios*
-          path: target/
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: vexel-core-x86_64-apple-ios
-          path: target/
-      - name: install uniffi-bindgen-swift
-        run: cargo install uniffi-bindgen-swift
-      - run: platforms/ios/scripts/build-xcframework.sh
-      - uses: actions/upload-release-asset@v1
-        if: false  # gated until first signed release
-        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
-        with:
-          upload_url: '${{ github.event.release.upload_url }}'
-          asset_path: platforms/ios/VexelCore.xcframework
-          asset_name: VexelCore.xcframework.zip
-          asset_content_type: application/zip
-
-  android-aar:
-    needs: rust-binaries
+  js-runtime:
+    name: js runtime — type-check + unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/setup-node@v4
         with:
-          pattern: vexel-core-*-android*
-          path: target/
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: '17' }
-      - name: install uniffi-bindgen-kotlin
-        run: cargo install uniffi-bindgen-kotlin
-      - run: platforms/android/scripts/build-aar.sh
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - name: install workspace deps
+        # @pixelpath/vexel has no build step (TS source ships directly) and no
+        # runtime npm deps beyond fast-xml-parser. We install at the example
+        # app — which has react/react-native/react-native-svg as peer deps —
+        # to get a working TS environment.
+        working-directory: examples/react-native-mermaid
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+      - name: type-check runtime
+        working-directory: examples/react-native-mermaid
+        run: ./node_modules/.bin/tsc --noEmit
+      - name: unit tests — CSS engine
+        working-directory: packages/runtime
+        run: node --experimental-strip-types src/cssRules.test.ts
+      - name: unit tests — painted-area hit test
+        working-directory: packages/runtime
+        run: node --experimental-strip-types src/hitTest.test.ts
 
   publish-npm:
-    needs: [ios-xcframework, android-aar]
+    name: publish @pixelpath/vexel to npm
+    # Gated. Set `do_publish=true` in repo variables to enable.
+    # Default workflow stays in "validation only" mode so accidental
+    # tag-pushes don't try to re-publish an already-published version.
+    if: vars.do_publish == 'true'
+    needs: js-runtime
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,11 +64,69 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
       - name: publish @pixelpath/vexel
-        run: npm publish -w packages/runtime --access public
-        env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
-      - name: publish @pixelpath/vexel-cli
-        run: npm publish -w packages/cli --access public
-        env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
-      - name: publish @pixelpath/vexel-conformance
-        run: npm publish -w packages/conformance --access public
-        env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
+        working-directory: packages/runtime
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+# ──────────────────────────────────────────────────────────────────────
+# Jobs below are deliberately commented out for v0.x. They depend on the
+# Rust core (crates/vexel-core) + native binding crates that the v1.0
+# Skia + Rust hit-test swap will build. Re-enable when that work lands.
+# ──────────────────────────────────────────────────────────────────────
+#
+#  rust-binaries:
+#    name: rust binaries (${{ matrix.target }})
+#    runs-on: ${{ matrix.os }}
+#    strategy:
+#      matrix:
+#        include:
+#          - { os: macos-14,      target: aarch64-apple-ios }
+#          - { os: macos-14,      target: aarch64-apple-ios-sim }
+#          - { os: macos-14,      target: x86_64-apple-ios }
+#          - { os: ubuntu-latest, target: aarch64-linux-android }
+#          - { os: ubuntu-latest, target: armv7-linux-androideabi }
+#          - { os: ubuntu-latest, target: x86_64-linux-android }
+#          - { os: ubuntu-latest, target: i686-linux-android }
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: dtolnay/rust-toolchain@stable
+#        with: { targets: '${{ matrix.target }}' }
+#      - run: cargo build --release --target ${{ matrix.target }} -p vexel-core
+#      - uses: actions/upload-artifact@v4
+#        with:
+#          name: vexel-core-${{ matrix.target }}
+#          path: target/${{ matrix.target }}/release/libvexel_core.*
+#
+#  ios-xcframework:
+#    needs: rust-binaries
+#    runs-on: macos-14
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/download-artifact@v4
+#        with: { pattern: vexel-core-aarch64-apple-ios*, path: target/ }
+#      - uses: actions/download-artifact@v4
+#        with: { pattern: vexel-core-x86_64-apple-ios, path: target/ }
+#      - name: install swift bindgen
+#        # NOTE: `uniffi-bindgen-swift` is NOT a published crate; it ships
+#        # as a binary inside the uniffi workspace. Use `cargo install
+#        # --git https://github.com/mozilla/uniffi-rs --branch main
+#        # uniffi-bindgen-swift` once we're on uniffi >=0.28.
+#        run: 'true # see comment above'
+#      - run: platforms/ios/scripts/build-xcframework.sh
+#
+#  android-aar:
+#    needs: rust-binaries
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/download-artifact@v4
+#        with: { pattern: vexel-core-*-android*, path: target/ }
+#      - uses: actions/setup-java@v4
+#        with: { distribution: temurin, java-version: '17' }
+#      - name: install kotlin bindgen
+#        # Same caveat as iOS — uniffi-bindgen-kotlin is part of the
+#        # uniffi workspace, not a standalone crate. Use the git install
+#        # form when v1.0 lands.
+#        run: 'true # see comment above'
+#      - run: platforms/android/scripts/build-aar.sh
